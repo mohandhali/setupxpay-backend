@@ -1,0 +1,36 @@
+const TronWeb = require("tronweb");
+
+// ✅ Your credentials
+const PRIVATE_KEY = "ddc4d27b4b6eaf4c74088ac546b18e35674fa997c6e9d77d209f5fafa54b79ad"; // Sender private key
+const RECEIVER_ADDRESS = "TYdt3VMoJxcTeCt77Uvt4iTTA1iP72rKRM"; // Receiver wallet address
+
+// ✅ USDT TRC-20 official contract on Nile Testnet
+const CONTRACT_ADDRESS = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"; 
+
+// ✅ USDT amount to send: 1000 * 10^6 (TRC20 has 6 decimals)
+const AMOUNT_TO_SEND = 1000 * 10 ** 6; 
+
+// ✅ Setup TronWeb for Nile Testnet
+const tronWeb = new TronWeb({
+  fullHost: "https://api.nileex.io",
+  privateKey: PRIVATE_KEY,
+});
+
+const sendUSDT = async () => {
+  try {
+    console.log("🔍 Loading USDT Contract...");
+    const contract = await tronWeb.contract().at(CONTRACT_ADDRESS);
+
+    console.log("🚀 Sending USDT...");
+    const tx = await contract
+      .transfer(RECEIVER_ADDRESS, AMOUNT_TO_SEND)
+      .send();
+
+    console.log("✅ USDT Sent Successfully!");
+    console.log("🔗 Transaction Hash:", tx);
+  } catch (error) {
+    console.error("❌ Failed to send USDT:", error.message || error);
+  }
+};
+
+sendUSDT();
