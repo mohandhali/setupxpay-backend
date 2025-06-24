@@ -25,29 +25,22 @@ const Transaction = mongoose.model("Transaction", new mongoose.Schema({
 
 // ✅ Middleware
 app.use(cors());
-
-// ⛔ Razorpay webhook raw parser (must be before bodyParser)
-app.use("/webhook", express.raw({ type: "application/json" }));
-
-// ✅ For all other routes
+app.use("/webhook", express.raw({ type: "application/json" })); // Raw body for webhook
 app.use(bodyParser.json());
 
-// ✅ Secrets and Config
+// ✅ Config
 const RAZORPAY_WEBHOOK_SECRET = "setupx_secret_key";
 const TATUM_API_KEY = "t-684c3a005ad68338f85afe22-1792ec2110654df39d604f3b";
 const SENDER_PRIVATE_KEY = "ddc4d27b4b6eaf4c74088ac546b18e35674fa997c6e9d77d209f5fafa54b79ad";
 const TOKEN_ADDRESS = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
 
-// ✅ React Manual Payment Route
+// ✅ Manual Payment Route
 app.post("/send-usdt", async (req, res) => {
   const { amountInr, walletAddress } = req.body;
 
   if (!amountInr || !walletAddress) {
     return res.status(400).json({ error: "Missing amountInr or walletAddress" });
   }
-
-  console.log(`✅ Manual Payment Received: ₹${amountInr}`);
-  console.log(`🔗 Receiver Wallet: ${walletAddress}`);
 
   try {
     const usdtRate = 83;
@@ -71,8 +64,6 @@ app.post("/send-usdt", async (req, res) => {
     );
 
     const txId = response?.data?.txId || "unknown";
-    console.log("✅ USDT sent successfully!");
-    console.log("🔁 Tx ID:", txId);
 
     await Transaction.create({
       amountInr,
@@ -81,8 +72,6 @@ app.post("/send-usdt", async (req, res) => {
       usdtAmount,
       rate: usdtRate,
     });
-
-    console.log("💾 Data saved to DB");
 
     res.json({
       message: "USDT sent successfully!",
@@ -97,33 +86,73 @@ app.post("/send-usdt", async (req, res) => {
   }
 });
 
-// ✅ Webhook Route from Razorpay
-app.post("/webhook", (req, res) => {
-  const secret = RAZORPAY_WEBHOOK_SECRET;
+// ✅ Webhook Auto Payout Route
+app.post("/webhook", async (req, res) => {
+  const receivedSig = req.headers["x-razorpay-signature"];
+  const expectedSig = crypto.createHmac("sha256", RAZORPAY_WEBHOOK_SECRET).update(req.body).digest("hex");
 
-  const sha = crypto.createHmac("sha256", secret);
-  sha.update(req.body.toString());
-  const signature = sha.digest("hex");
-
-  if (signature === req.headers["x-razorpay-signature"]) {
-    console.log("✅ Webhook verified:", req.body);
-
-    const { amount, notes } = JSON.parse(req.body).payload.payment.entity;
-    const wallet = notes?.wallet;
-
-    console.log(`🎯 Webhook INR: ₹${amount / 100}`);
-    console.log(`🎯 Webhook Wallet: ${wallet}`);
-
-    // Optional: Auto transfer logic can be added here
-
-    return res.status(200).json({ status: "ok" });
-  } else {
+  if (receivedSig !== expectedSig) {
     console.warn("❌ Invalid Razorpay Signature");
     return res.status(403).json({ error: "Invalid signature" });
   }
+
+  try {
+    const payload = JSON.parse(req.body);
+    const entity = payload?.payload?.payment?.entity;
+
+    const amountInr = entity.amount / 100;
+    const wallet = entity.notes?.wallet;
+
+    if (!wallet) {
+      return res.status(400).json({ error: "Missing wallet address in notes" });
+    }
+
+    console.log(`✅ Webhook Payment Received: ₹${amountInr}`);
+    console.log(`🔗 Wallet: ${wallet}`);
+
+    // 🔁 USDT Calculation
+    const usdtRate = 83;
+    const usdtAmount = (amountInr / usdtRate).toFixed(2);
+
+    // 🔁 Tatum Transfer
+    const response = await axios.post(
+      "https://api.tatum.io/v3/tron/trc20/transaction",
+      {
+        to: wallet,
+        amount: usdtAmount,
+        fromPrivateKey: SENDER_PRIVATE_KEY,
+        tokenAddress: TOKEN_ADDRESS,
+        feeLimit: 1000,
+      },
+      {
+        headers: {
+          "x-api-key": TATUM_API_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const txId = response?.data?.txId || "unknown";
+
+    // 💾 Save in DB
+    await Transaction.create({
+      amountInr,
+      wallet,
+      txId,
+      usdtAmount,
+      rate: usdtRate,
+    });
+
+    console.log("✅ Webhook payout successful:", txId);
+    res.status(200).json({ status: "ok" });
+
+  } catch (err) {
+    console.error("❌ Webhook Error:", err);
+    res.status(500).json({ error: "Webhook processing failed" });
+  }
 });
 
-// ✅ Get all transactions
+// ✅ Transactions API
 app.get("/transactions", async (req, res) => {
   try {
     const txs = await Transaction.find().sort({ createdAt: -1 }).limit(100);
