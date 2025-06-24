@@ -25,6 +25,11 @@ const Transaction = mongoose.model("Transaction", new mongoose.Schema({
 
 // ✅ Middleware
 app.use(cors());
+
+// ⛔ Razorpay webhook raw parser (must be before bodyParser)
+app.use("/webhook", express.raw({ type: "application/json" }));
+
+// ✅ For all other routes
 app.use(bodyParser.json());
 
 // ✅ Secrets and Config
@@ -67,10 +72,8 @@ app.post("/send-usdt", async (req, res) => {
 
     const txId = response?.data?.txId || "unknown";
     console.log("✅ USDT sent successfully!");
-    console.log("📦 Full Tatum Response:", JSON.stringify(response.data, null, 2));
     console.log("🔁 Tx ID:", txId);
 
-    // ✅ Save to MongoDB
     await Transaction.create({
       amountInr,
       wallet: walletAddress,
@@ -94,7 +97,33 @@ app.post("/send-usdt", async (req, res) => {
   }
 });
 
-// ✅ Get all transactions for dashboard
+// ✅ Webhook Route from Razorpay
+app.post("/webhook", (req, res) => {
+  const secret = RAZORPAY_WEBHOOK_SECRET;
+
+  const sha = crypto.createHmac("sha256", secret);
+  sha.update(req.body.toString());
+  const signature = sha.digest("hex");
+
+  if (signature === req.headers["x-razorpay-signature"]) {
+    console.log("✅ Webhook verified:", req.body);
+
+    const { amount, notes } = JSON.parse(req.body).payload.payment.entity;
+    const wallet = notes?.wallet;
+
+    console.log(`🎯 Webhook INR: ₹${amount / 100}`);
+    console.log(`🎯 Webhook Wallet: ${wallet}`);
+
+    // Optional: Auto transfer logic can be added here
+
+    return res.status(200).json({ status: "ok" });
+  } else {
+    console.warn("❌ Invalid Razorpay Signature");
+    return res.status(403).json({ error: "Invalid signature" });
+  }
+});
+
+// ✅ Get all transactions
 app.get("/transactions", async (req, res) => {
   try {
     const txs = await Transaction.find().sort({ createdAt: -1 }).limit(100);
@@ -103,7 +132,6 @@ app.get("/transactions", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch transactions" });
   }
 });
-
 
 // 🚀 Start Server
 app.listen(PORT, () => {

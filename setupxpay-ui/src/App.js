@@ -13,7 +13,7 @@ function App() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("http://localhost:5000/transactions");
+        const res = await fetch("https://setupxpay-backend.onrender.com/transactions"); // ✅ Use deployed backend
         const data = await res.json();
         setTransactions(data);
         console.log("📥 Transactions fetched:", data);
@@ -27,7 +27,7 @@ function App() {
 
   return (
     <div className="p-4 flex flex-col items-center">
-      <PaymentForm onSuccess={addTransaction} />
+      <PaymentForm onSuccess={addTransaction} /> {/* ✅ Pass onSuccess */}
       <TransactionTable data={transactions} />
     </div>
   );

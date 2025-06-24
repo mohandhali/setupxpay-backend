@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const PaymentForm = () => {
+const PaymentForm = ({ onSuccess }) => {
   const [wallet, setWallet] = useState("");
   const [amount, setAmount] = useState("");
 
@@ -9,7 +9,7 @@ const PaymentForm = () => {
     console.log("🔁 Sending Request...");
 
     try {
-      const response = await fetch("http://localhost:5000/send-usdt", {
+      const response = await fetch("https://setupxpay-backend.onrender.com/send-usdt", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -25,7 +25,7 @@ const PaymentForm = () => {
 
       if (response.ok) {
         alert(`✅ Success! Tx ID: ${data.txId}`);
-        // Clear the form
+        onSuccess(data); // ✅ Update transaction table immediately
         setWallet("");
         setAmount("");
       } else {
