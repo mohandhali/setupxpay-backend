@@ -162,6 +162,51 @@ app.get("/transactions", async (req, res) => {
   }
 });
 
+// ✅ Create Razorpay Payment Link
+const Razorpay = require("razorpay");
+
+const razorpay = new Razorpay({
+  key_id: "rzp_test_yourKeyHere",
+  key_secret: "yourSecretKeyHere"
+});
+
+app.post("/create-payment-link", async (req, res) => {
+  const { amountInr, walletAddress } = req.body;
+
+  if (!amountInr || !walletAddress) {
+    return res.status(400).json({ error: "Missing amount or wallet address" });
+  }
+
+  try {
+    const response = await razorpay.paymentLink.create({
+      amount: amountInr * 100,
+      currency: "INR",
+      accept_partial: false,
+      description: "USDT Auto Payout via SetupXPay",
+      customer: {
+        name: "User",
+        contact: "",
+        email: "",
+      },
+      notify: {
+        sms: false,
+        email: false,
+      },
+      reminder_enable: true,
+      notes: {
+        wallet: walletAddress,
+      },
+      callback_url: "https://setupxpay-78bb7.web.app",
+      callback_method: "get"
+    });
+
+    res.json({ url: response.short_url });
+  } catch (err) {
+    console.error("❌ Error creating payment link:", err);
+    res.status(500).json({ error: "Failed to create payment link" });
+  }
+});
+
 // 🚀 Start Server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
