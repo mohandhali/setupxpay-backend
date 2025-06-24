@@ -1,39 +1,44 @@
 import React, { useState } from "react";
 
-const PaymentForm = ({ onSuccess }) => {
+const PaymentForm = () => {
   const [wallet, setWallet] = useState("");
   const [amount, setAmount] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("🔁 Sending Request...");
+    setLoading(true);
+    console.log("🔁 Generating Payment Link...");
 
     try {
-      const response = await fetch("https://setupxpay-backend.onrender.com/send-usdt", {
+      const res = await fetch("https://setupxpay-backend.onrender.com/create-payment-link", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          amountInr: amount,
           walletAddress: wallet,
-          amountInr: amount
-        })
+        }),
       });
 
-      const data = await response.json();
-      console.log("✅ Response received:", data);
+      const data = await res.json();
+      console.log("✅ Payment Link Response:", data);
 
-      if (response.ok) {
-        alert(`✅ Success! Tx ID: ${data.txId}`);
-        onSuccess(data); // ✅ Update transaction table immediately
+      if (res.ok && data.url) {
+        alert("✅ Payment link created! Opening now...");
+        window.open(data.url, "_blank");
         setWallet("");
         setAmount("");
       } else {
-        alert(`❌ Error: ${data.error || "Something went wrong"}`);
+        alert("❌ Failed to generate payment link");
       }
+
     } catch (error) {
       console.error("❌ Error:", error);
-      alert("❌ Failed to send USDT. Please try again.");
+      alert("❌ Something went wrong while creating payment link");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -62,9 +67,10 @@ const PaymentForm = ({ onSuccess }) => {
 
         <button
           type="submit"
+          disabled={loading}
           className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
         >
-          Send USDT
+          {loading ? "Processing..." : "Generate Payment Link"}
         </button>
       </form>
     </div>
