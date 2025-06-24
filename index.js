@@ -166,8 +166,8 @@ app.get("/transactions", async (req, res) => {
 const Razorpay = require("razorpay");
 
 const razorpay = new Razorpay({
-  key_id: "rzp_test_yourKeyHere",
-  key_secret: "yourSecretKeyHere"
+  key_id: "rzp_test_QflsX9eLx3HUJA",
+  key_secret: "JsS6yJAtjqAVTd6Dxg7DkI7u"
 });
 
 app.post("/create-payment-link", async (req, res) => {
