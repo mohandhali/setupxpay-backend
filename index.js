@@ -34,6 +34,29 @@ const TATUM_API_KEY = "t-684c3a005ad68338f85afe22-1792ec2110654df39d604f3b";
 const SENDER_PRIVATE_KEY = "ddc4d27b4b6eaf4c74088ac546b18e35674fa997c6e9d77d209f5fafa54b79ad";
 const TOKEN_ADDRESS = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
 
+// ✅ Generate TRON wallet
+app.get("/create-wallet", async (req, res) => {
+  try {
+    const response = await axios.get("https://api.tatum.io/v3/tron/wallet", {
+      headers: {
+        "x-api-key": TATUM_API_KEY,
+      },
+    });
+
+    const { address, privateKey, mnemonic } = response.data;
+
+    res.json({
+      address,
+      privateKey,
+      mnemonic,
+    });
+  } catch (error) {
+    console.error("❌ Wallet creation failed:", error.response?.data || error.message);
+    res.status(500).json({ error: "Wallet generation failed" });
+  }
+});
+
+
 // ✅ Manual Payment Route
 app.post("/send-usdt", async (req, res) => {
   const { amountInr, walletAddress } = req.body;
