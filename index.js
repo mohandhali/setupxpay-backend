@@ -13,6 +13,15 @@ mongoose.connect("mongodb+srv://mohan:mohan123@cluster0.em2tu28.mongodb.net/setu
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
+// ✅ User Schema
+const User = mongoose.model("User", new mongoose.Schema({
+  name: String,
+  email: String,
+  walletAddress: String,
+  createdAt: { type: Date, default: Date.now }
+}));
+
+
 // ✅ Schema
 const Transaction = mongoose.model("Transaction", new mongoose.Schema({
   amountInr: Number,
@@ -64,6 +73,51 @@ app.get("/create-wallet", async (req, res) => {
   }
 });
 
+// ✅ Signup Route - Create User + TRON Wallet
+app.post("/signup", async (req, res) => {
+  const { name, email } = req.body;
+
+  if (!name || !email) {
+    return res.status(400).json({ error: "Name and email are required" });
+  }
+
+  try {
+    // 1. Create wallet from Tatum
+    const walletRes = await axios.get("https://api.tatum.io/v3/tron/wallet", {
+      headers: {
+        "x-api-key": TATUM_API_KEY,
+      },
+    });
+
+    const { address, mnemonic, xpub } = walletRes.data;
+
+    // 2. Save user to MongoDB
+    const user = await User.create({
+      name,
+      email,
+      walletAddress: address,
+    });
+
+    // 3. Respond with wallet + user info
+    res.json({
+      message: "Signup successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        walletAddress: user.walletAddress,
+      },
+      wallet: {
+        address,
+        mnemonic,
+        xpub,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Signup failed:", error.response?.data || error.message);
+    res.status(500).json({ error: "Signup failed" });
+  }
+});
 
 
 
