@@ -37,48 +37,19 @@ const TOKEN_ADDRESS = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
 // ✅ Generate full TRON wallet info (address, privateKey, mnemonic)
 app.get("/create-wallet", async (req, res) => {
   try {
-    // 1. Generate mnemonic
+    // 1. Generate TRON wallet: this returns address + private key
     const walletResponse = await axios.get("https://api.tatum.io/v3/tron/wallet", {
       headers: {
         "x-api-key": TATUM_API_KEY,
       },
     });
 
-    const { mnemonic } = walletResponse.data;
-
-    // 2. Derive address (corrected GET)
-    const addressResponse = await axios.get(
-      `https://api.tatum.io/v3/tron/address/${encodeURIComponent(mnemonic)}/0`,
-      {
-        headers: {
-          "x-api-key": TATUM_API_KEY,
-        },
-      }
-    );
-
-    const address = addressResponse.data;
-
-    // 3. Get private key
-    const pkResponse = await axios.post(
-      "https://api.tatum.io/v3/tron/wallet/priv",
-      {
-        mnemonic,
-        index: 0,
-      },
-      {
-        headers: {
-          "x-api-key": TATUM_API_KEY,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    const privateKey = pkResponse.data.key;
+    const { address, privateKey } = walletResponse.data;
 
     res.json({
       address,
       privateKey,
-      mnemonic,
+      // optional: generate your own mnemonic (not supported by Tatum for TRON)
     });
 
   } catch (error) {
