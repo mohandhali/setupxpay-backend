@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@tatumio/tron": "^2.2.98",
     "axios": "^1.10.0",
     "bs58check": "^4.0.0",
     "cors": "^2.8.5",
