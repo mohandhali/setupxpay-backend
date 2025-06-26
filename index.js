@@ -119,35 +119,38 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-// ✅ Get USDT balance of a TRON address
-app.get('/get-balance/:address', async (req, res) => {
+// ✅ Get TRC20 USDT Balance from Tatum
+app.get("/get-balance/:address", async (req, res) => {
   const address = req.params.address;
+  const usdtContractAddress = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"; // TRON USDT Contract
 
   try {
-    const response = await axios.get(`https://api.tatum.io/v3/tron/account/${address}`, {
-      headers: {
-        'x-api-key': TATUM_API_KEY,
-      },
-    });
+    const response = await axios.get(
+      `https://api.tatum.io/v3/tron/account/${address}`,
+      {
+        headers: {
+          "x-api-key": TATUM_API_KEY,
+        },
+      }
+    );
 
-    // Get TRC20 token balances
-    const usdtTokenAddress = 'TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj'; // USDT contract on TRON
-    const tokenBalances = response.data.trc20;
+    const trc20 = response.data.trc20;
+    let usdtBalance = "0";
 
-    let usdtBalance = '0';
-    if (tokenBalances && Array.isArray(tokenBalances)) {
-      const match = tokenBalances.find(token => token.hasOwnProperty(usdtTokenAddress));
-      if (match) {
-        usdtBalance = match[usdtTokenAddress];
+    if (Array.isArray(trc20)) {
+      const token = trc20.find((item) => item[usdtContractAddress]);
+      if (token) {
+        usdtBalance = token[usdtContractAddress];
       }
     }
 
     res.json({ address, usdt: usdtBalance });
   } catch (error) {
-    console.error('❌ Error fetching balance:', error.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to fetch balance' });
+    console.error("❌ Error fetching balance:", error.response?.data || error.message);
+    res.status(500).json({ error: "Failed to fetch balance" });
   }
 });
+
 
 
 
