@@ -34,30 +34,65 @@ const TATUM_API_KEY = "t-684c3a005ad68338f85afe22-1792ec2110654df39d604f3b";
 const SENDER_PRIVATE_KEY = "ddc4d27b4b6eaf4c74088ac546b18e35674fa997c6e9d77d209f5fafa54b79ad";
 const TOKEN_ADDRESS = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
 
-// ✅ Generate full TRON wallet
+// ✅ Generate full TRON wallet info (address, privateKey, mnemonic)
 app.get("/create-wallet", async (req, res) => {
   try {
-    const wallet = await axios.get("https://api.tatum.io/v3/tron/wallet", {
-      headers: { "x-api-key": TATUM_API_KEY },
+    // Step 1: Generate new TRON wallet (mnemonic + xpub)
+    const walletResponse = await axios.get("https://api.tatum.io/v3/tron/wallet", {
+      headers: {
+        "x-api-key": TATUM_API_KEY,
+      },
     });
 
-    const mnemonic = wallet.data.mnemonic;
+    const { mnemonic } = walletResponse.data;
 
-    const derived = await axios.get(
-      `https://api.tatum.io/v3/tron/wallet/derived/${mnemonic}/0`,
+    // Step 2: Derive address from mnemonic
+    const addressResponse = await axios.post(
+      "https://api.tatum.io/v3/tron/address",
       {
-        headers: { "x-api-key": TATUM_API_KEY },
+        mnemonic,
+        index: 0,
+      },
+      {
+        headers: {
+          "x-api-key": TATUM_API_KEY,
+          "Content-Type": "application/json",
+        },
       }
     );
 
-    const { address, privateKey } = derived.data;
+    const address = addressResponse.data;
 
-    res.json({ address, privateKey, mnemonic });
+    // Step 3: Get private key for the same index
+    const pkResponse = await axios.post(
+      "https://api.tatum.io/v3/tron/wallet/priv",
+      {
+        mnemonic,
+        index: 0,
+      },
+      {
+        headers: {
+          "x-api-key": TATUM_API_KEY,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const privateKey = pkResponse.data.key;
+
+    // ✅ Return full wallet info
+    res.json({
+      address,
+      privateKey,
+      mnemonic,
+    });
+
   } catch (error) {
     console.error("❌ Wallet creation failed:", error.response?.data || error.message);
     res.status(500).json({ error: "Wallet generation failed" });
   }
 });
+
 
 
 
