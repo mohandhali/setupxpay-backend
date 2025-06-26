@@ -119,6 +119,29 @@ app.post("/signup", async (req, res) => {
   }
 });
 
+// ✅ Get USDT balance of a TRON address
+app.get("/get-balance/:address", async (req, res) => {
+  const { address } = req.params;
+
+  try {
+    const response = await axios.get(`https://api.tatum.io/v3/tron/account/${address}`, {
+      headers: {
+        "x-api-key": TATUM_API_KEY,
+      },
+    });
+
+    const usdtToken = response.data.assets.find(
+      (token) => token.contractAddress === TOKEN_ADDRESS
+    );
+
+    const balance = usdtToken ? usdtToken.balance : "0";
+
+    res.json({ address, usdtBalance: balance });
+  } catch (error) {
+    console.error("❌ Error fetching balance:", error.response?.data || error.message);
+    res.status(500).json({ error: "Failed to fetch balance" });
+  }
+});
 
 
 
