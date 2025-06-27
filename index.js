@@ -258,7 +258,10 @@ app.post("/webhook", async (req, res) => {
 // ✅ Get all transactions
 app.get("/transactions", async (req, res) => {
   try {
-    const txs = await Transaction.find().sort({ createdAt: -1 }).limit(100);
+    const { wallet } = req.query;
+    const filter = wallet ? { wallet } : {};
+
+    const txs = await Transaction.find(filter).sort({ createdAt: -1 }).limit(50);
     res.json(txs);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch transactions" });

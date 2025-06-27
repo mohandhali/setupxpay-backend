@@ -1,86 +1,76 @@
 import React, { useState } from "react";
 
-const Signup = ({ onSignupSuccess, showLoginLink }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
+const Signup = ({ onSuccess }) => {
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [message, setMessage] = useState("");
 
   const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSignup = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
-    setMessage("");
-
     try {
       const res = await fetch("https://setupxpay-backend.onrender.com/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(form),
       });
 
       const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || "Signup failed");
+      if (res.ok) {
+        setMessage("✅ Account created successfully");
+        onSuccess(); // 👈 Switch to login
+      } else {
+        setMessage(`❌ ${data.error || "Signup failed"}`);
       }
-
-      setMessage("🎉 Account created successfully!");
-      onSignupSuccess(); // ✅ This shows login link
-    } catch (err) {
-      console.error("❌ Signup error:", err.message);
-      setMessage(`❌ ${err.message}`);
+    } catch (error) {
+      console.error("❌ Signup error:", error);
+      setMessage("❌ Signup error: " + error.message);
     }
   };
 
   return (
-    <div className="p-4 border rounded-md shadow-md max-w-sm w-full">
-      <h2 className="text-xl font-semibold mb-4">🚀 Sign Up</h2>
-      <form onSubmit={handleSignup} className="space-y-4">
+    <div className="w-full max-w-md mx-auto mt-10 p-6 border rounded-lg shadow-lg">
+      <h2 className="text-xl font-bold mb-4">🚀 Sign Up</h2>
+      <form onSubmit={onSubmit} className="space-y-4">
         <input
           type="text"
           name="name"
-          placeholder="Name"
-          className="w-full p-2 border rounded"
-          value={formData.name}
+          placeholder="👤 Name"
+          value={form.name}
           onChange={handleChange}
+          className="w-full p-2 border rounded"
           required
         />
         <input
           type="email"
           name="email"
-          placeholder="Email"
-          className="w-full p-2 border rounded"
-          value={formData.email}
+          placeholder="📧 Email"
+          value={form.email}
           onChange={handleChange}
+          className="w-full p-2 border rounded"
           required
         />
         <input
           type="password"
           name="password"
-          placeholder="Password"
-          className="w-full p-2 border rounded"
-          value={formData.password}
+          placeholder="🔐 Password"
+          value={form.password}
           onChange={handleChange}
+          className="w-full p-2 border rounded"
           required
         />
         <button
           type="submit"
-          className="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700"
+          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
         >
           Sign Up
         </button>
-        {message && <div className="text-sm mt-2">{message}</div>}
-        {showLoginLink && (
-          <div className="text-sm mt-2 text-blue-600 cursor-pointer" onClick={showLoginLink}>
-            🔑 Already have an account? Login
-          </div>
-        )}
       </form>
+
+      {message && <div className="text-sm mt-2">{message}</div>}
     </div>
   );
 };
