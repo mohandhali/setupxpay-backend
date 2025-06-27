@@ -1,34 +1,43 @@
-import React, { useEffect, useState } from "react";
-import PaymentForm from "./components/PaymentForm";
-import TransactionTable from "./components/TransactionTable";
+import React, { useState } from "react";
+import Signup from "./components/auth/Signup";
+import Login from "./components/auth/Login";
+import Dashboard from "./components/Dashboard";
 
 function App() {
-  const [transactions, setTransactions] = useState([]);
+  const [view, setView] = useState("signup"); // 'signup' | 'login' | 'dashboard'
+  const [user, setUser] = useState(null);
 
-  const addTransaction = (tx) => {
-    setTransactions((prev) => [tx, ...prev]);
+  const handleSignupSuccess = () => {
+    setView("login"); // After signup, show Login
   };
 
-  // ⏬ Fetch on page load
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch("https://setupxpay-backend.onrender.com/transactions"); // ✅ Use deployed backend
-        const data = await res.json();
-        setTransactions(data);
-        console.log("📥 Transactions fetched:", data);
-      } catch (error) {
-        console.error("❌ Failed to fetch transactions:", error);
-      }
-    };
-
-    fetchData();
-  }, []);
+  const handleLoginSuccess = (loggedInUser) => {
+    setUser(loggedInUser);
+    setView("dashboard");
+  };
 
   return (
     <div className="p-4 flex flex-col items-center">
-      <PaymentForm onSuccess={addTransaction} /> {/* ✅ Pass onSuccess */}
-      <TransactionTable data={transactions} />
+      {view === "signup" && <Signup onSuccess={handleSignupSuccess} />}
+      {view === "login" && <Login onSuccess={handleLoginSuccess} />}
+      {view === "dashboard" && <Dashboard user={user} />}
+      
+      {view !== "dashboard" && (
+        <div className="mt-4">
+          {view === "signup" && (
+            <p className="text-sm">
+              Already have an account?{" "}
+              <button onClick={() => setView("login")} className="text-blue-500 underline">Login</button>
+            </p>
+          )}
+          {view === "login" && (
+            <p className="text-sm">
+              Don’t have an account?{" "}
+              <button onClick={() => setView("signup")} className="text-blue-500 underline">Sign up</button>
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,10 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const crypto = require("crypto");
 const axios = require("axios");
+const bcrypt = require("bcryptjs");
+const Razorpay = require("razorpay");
+
+const User = require("./models/User");
 
 const app = express();
 const PORT = 5000;
@@ -13,16 +17,7 @@ mongoose.connect("mongodb+srv://mohan:mohan123@cluster0.em2tu28.mongodb.net/setu
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
-// ✅ User Schema
-const User = mongoose.model("User", new mongoose.Schema({
-  name: String,
-  email: String,
-  walletAddress: String,
-  createdAt: { type: Date, default: Date.now }
-}));
-
-
-// ✅ Schema
+// ✅ Models
 const Transaction = mongoose.model("Transaction", new mongoose.Schema({
   amountInr: Number,
   wallet: String,
@@ -33,8 +28,11 @@ const Transaction = mongoose.model("Transaction", new mongoose.Schema({
 }));
 
 // ✅ Middleware
-app.use(cors());
-app.use("/webhook", express.raw({ type: "application/json" })); // Raw body for webhook
+app.use(cors({
+  origin: "https://setupxpay-78bb7.web.app",
+  credentials: true,
+}));
+app.use("/webhook", express.raw({ type: "application/json" }));
 app.use(bodyParser.json());
 
 // ✅ Config
@@ -43,21 +41,94 @@ const TATUM_API_KEY = "t-684c3a005ad68338f85afe22-1792ec2110654df39d604f3b";
 const SENDER_PRIVATE_KEY = "ddc4d27b4b6eaf4c74088ac546b18e35674fa997c6e9d77d209f5fafa54b79ad";
 const TOKEN_ADDRESS = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
 
-// ✅ Generate TRON wallet with address
+// ✅ Signup
+app.post("/signup", async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) return res.status(400).json({ error: "All fields are required." });
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) return res.status(409).json({ error: "User already exists" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const walletRes = await axios.get("https://api.tatum.io/v3/tron/wallet", {
+      headers: { "x-api-key": TATUM_API_KEY },
+    });
+    const { mnemonic, xpub } = walletRes.data;
+
+    const addressRes = await axios.get(`https://api.tatum.io/v3/tron/address/${xpub}/0`, {
+      headers: { "x-api-key": TATUM_API_KEY },
+    });
+
+    const address = addressRes.data.address;
+
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      walletAddress: address,
+      xpub,
+    });
+
+    await user.save();
+
+    res.json({
+      message: "Signup successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        walletAddress: user.walletAddress,
+      },
+      wallet: {
+        address,
+        xpub,
+      },
+    });
+  } catch (err) {
+    console.error("❌ Signup error:", err.message);
+    res.status(500).json({ error: "Signup failed" });
+  }
+});
+
+// ✅ Login
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
+
+    res.json({
+      message: "Login successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        walletAddress: user.walletAddress,
+      },
+    });
+  } catch (err) {
+    console.error("❌ Login error:", err.message);
+    res.status(500).json({ error: "Login failed" });
+  }
+});
+
+// ✅ Wallet Generation (public)
 app.get("/create-wallet", async (req, res) => {
   try {
     const walletRes = await axios.get("https://api.tatum.io/v3/tron/wallet", {
-      headers: {
-        "x-api-key": TATUM_API_KEY,
-      },
+      headers: { "x-api-key": TATUM_API_KEY },
     });
 
     const { mnemonic, xpub } = walletRes.data;
 
     const addressRes = await axios.get(`https://api.tatum.io/v3/tron/address/${xpub}/0`, {
-      headers: {
-        "x-api-key": TATUM_API_KEY,
-      },
+      headers: { "x-api-key": TATUM_API_KEY },
     });
 
     const address = addressRes.data.address;
@@ -73,65 +144,15 @@ app.get("/create-wallet", async (req, res) => {
   }
 });
 
-// ✅ Signup Route - Create User + TRON Wallet
-app.post("/signup", async (req, res) => {
-  const { name, email } = req.body;
-
-  if (!name || !email) {
-    return res.status(400).json({ error: "Name and email are required" });
-  }
-
-  try {
-    // 1. Create wallet from Tatum
-    const walletRes = await axios.get("https://api.tatum.io/v3/tron/wallet", {
-      headers: {
-        "x-api-key": TATUM_API_KEY,
-      },
-    });
-
-    const { address, mnemonic, xpub } = walletRes.data;
-
-    // 2. Save user to MongoDB
-    const user = await User.create({
-      name,
-      email,
-      walletAddress: address,
-    });
-
-    // 3. Respond with wallet + user info
-    res.json({
-      message: "Signup successful",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        walletAddress: user.walletAddress,
-      },
-      wallet: {
-        address,
-        mnemonic,
-        xpub,
-      },
-    });
-  } catch (error) {
-    console.error("❌ Signup failed:", error.response?.data || error.message);
-    res.status(500).json({ error: "Signup failed" });
-  }
-});
-
-// ✅ Get TRC20 USDT Balance from Tatum
+// ✅ Get Balance
 app.get("/get-balance/:address", async (req, res) => {
   const address = req.params.address;
-  const usdtContractAddress = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"; // TRON USDT Contract
+  const usdtContractAddress = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj"; // TRON USDT
 
   try {
     const response = await axios.get(
       `https://api.tatum.io/v3/tron/account/${address}`,
-      {
-        headers: {
-          "x-api-key": TATUM_API_KEY,
-        },
-      }
+      { headers: { "x-api-key": TATUM_API_KEY } }
     );
 
     const trc20 = response.data.trc20;
@@ -151,16 +172,10 @@ app.get("/get-balance/:address", async (req, res) => {
   }
 });
 
-
-
-
-// ✅ Manual Payment Route
+// ✅ Manual USDT Transfer
 app.post("/send-usdt", async (req, res) => {
   const { amountInr, walletAddress } = req.body;
-
-  if (!amountInr || !walletAddress) {
-    return res.status(400).json({ error: "Missing amountInr or walletAddress" });
-  }
+  if (!amountInr || !walletAddress) return res.status(400).json({ error: "Missing input" });
 
   try {
     const usdtRate = 83;
@@ -175,12 +190,7 @@ app.post("/send-usdt", async (req, res) => {
         tokenAddress: TOKEN_ADDRESS,
         feeLimit: 1000,
       },
-      {
-        headers: {
-          "x-api-key": TATUM_API_KEY,
-          "Content-Type": "application/json",
-        },
-      }
+      { headers: { "x-api-key": TATUM_API_KEY, "Content-Type": "application/json" } }
     );
 
     const txId = response?.data?.txId || "unknown";
@@ -193,28 +203,19 @@ app.post("/send-usdt", async (req, res) => {
       rate: usdtRate,
     });
 
-    res.json({
-      message: "USDT sent successfully!",
-      txId,
-      usdtAmount,
-      rate: usdtRate,
-    });
-
+    res.json({ message: "USDT sent", txId, usdtAmount, rate: usdtRate });
   } catch (error) {
-    console.error("❌ Error sending token:", error.response?.data || error.message);
+    console.error("❌ USDT transfer failed:", error.response?.data || error.message);
     res.status(500).json({ error: "USDT transfer failed" });
   }
 });
 
-// ✅ Webhook Auto Payout Route
+// ✅ Razorpay Webhook
 app.post("/webhook", async (req, res) => {
   const receivedSig = req.headers["x-razorpay-signature"];
   const expectedSig = crypto.createHmac("sha256", RAZORPAY_WEBHOOK_SECRET).update(req.body).digest("hex");
 
-  if (receivedSig !== expectedSig) {
-    console.warn("❌ Invalid Razorpay Signature");
-    return res.status(403).json({ error: "Invalid signature" });
-  }
+  if (receivedSig !== expectedSig) return res.status(403).json({ error: "Invalid signature" });
 
   try {
     const payload = JSON.parse(req.body);
@@ -222,19 +223,9 @@ app.post("/webhook", async (req, res) => {
 
     const amountInr = entity.amount / 100;
     const wallet = entity.notes?.wallet;
-
-    if (!wallet) {
-      return res.status(400).json({ error: "Missing wallet address in notes" });
-    }
-
-    console.log(`✅ Webhook Payment Received: ₹${amountInr}`);
-    console.log(`🔗 Wallet: ${wallet}`);
-
-    // 🔁 USDT Calculation
     const usdtRate = 83;
     const usdtAmount = (amountInr / usdtRate).toFixed(2);
 
-    // 🔁 Tatum Transfer
     const response = await axios.post(
       "https://api.tatum.io/v3/tron/trc20/transaction",
       {
@@ -244,17 +235,11 @@ app.post("/webhook", async (req, res) => {
         tokenAddress: TOKEN_ADDRESS,
         feeLimit: 1000,
       },
-      {
-        headers: {
-          "x-api-key": TATUM_API_KEY,
-          "Content-Type": "application/json",
-        },
-      }
+      { headers: { "x-api-key": TATUM_API_KEY, "Content-Type": "application/json" } }
     );
 
     const txId = response?.data?.txId || "unknown";
 
-    // 💾 Save in DB
     await Transaction.create({
       amountInr,
       wallet,
@@ -263,16 +248,14 @@ app.post("/webhook", async (req, res) => {
       rate: usdtRate,
     });
 
-    console.log("✅ Webhook payout successful:", txId);
     res.status(200).json({ status: "ok" });
-
   } catch (err) {
-    console.error("❌ Webhook Error:", err);
-    res.status(500).json({ error: "Webhook processing failed" });
+    console.error("❌ Webhook error:", err);
+    res.status(500).json({ error: "Webhook failed" });
   }
 });
 
-// ✅ Transactions API
+// ✅ Get all transactions
 app.get("/transactions", async (req, res) => {
   try {
     const txs = await Transaction.find().sort({ createdAt: -1 }).limit(100);
@@ -282,9 +265,7 @@ app.get("/transactions", async (req, res) => {
   }
 });
 
-// ✅ Create Razorpay Payment Link
-const Razorpay = require("razorpay");
-
+// ✅ Razorpay Payment Link
 const razorpay = new Razorpay({
   key_id: "rzp_test_QflsX9eLx3HUJA",
   key_secret: "JsS6yJAtjqAVTd6Dxg7DkI7u"
@@ -292,10 +273,7 @@ const razorpay = new Razorpay({
 
 app.post("/create-payment-link", async (req, res) => {
   const { amountInr, walletAddress } = req.body;
-
-  if (!amountInr || !walletAddress) {
-    return res.status(400).json({ error: "Missing amount or wallet address" });
-  }
+  if (!amountInr || !walletAddress) return res.status(400).json({ error: "Missing input" });
 
   try {
     const response = await razorpay.paymentLink.create({
@@ -308,26 +286,21 @@ app.post("/create-payment-link", async (req, res) => {
         contact: "",
         email: "",
       },
-      notify: {
-        sms: false,
-        email: false,
-      },
+      notify: { sms: false, email: false },
       reminder_enable: true,
-      notes: {
-        wallet: walletAddress,
-      },
+      notes: { wallet: walletAddress },
       callback_url: "https://setupxpay-78bb7.web.app",
-      callback_method: "get"
+      callback_method: "get",
     });
 
     res.json({ url: response.short_url });
   } catch (err) {
-    console.error("❌ Error creating payment link:", err);
+    console.error("❌ Razorpay link error:", err);
     res.status(500).json({ error: "Failed to create payment link" });
   }
 });
 
-// 🚀 Start Server
+// 🚀 Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
