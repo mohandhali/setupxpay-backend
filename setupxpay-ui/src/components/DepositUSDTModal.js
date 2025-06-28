@@ -6,10 +6,9 @@ const DepositUSDTModal = ({ walletAddress, onClose }) => {
   const [usdtQty, setUsdtQty] = useState(null);
 
   useEffect(() => {
-    // Fetch live USDT rate on mount
     const fetchRate = async () => {
       try {
-        const res = await fetch("/api/rate");
+        const res = await fetch("https://setupxpay-backend.onrender.com/rate");
         const data = await res.json();
         setUsdtRate(data.rate);
       } catch (err) {
@@ -27,17 +26,22 @@ const DepositUSDTModal = ({ walletAddress, onClose }) => {
 
   const handleProceed = async () => {
     try {
-      const res = await fetch("/api/payment-link", {
+      const res = await fetch("https://setupxpay-backend.onrender.com/create-payment-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inrAmount, walletAddress }),
+        body: JSON.stringify({ amountInr: inrAmount, walletAddress }),
       });
+
       const data = await res.json();
-      if (data.paymentLink) {
+      if (data.url) {
         window.location.href = data.paymentLink;
+      } else {
+        alert("Payment link creation failed.");
+        console.error("Backend returned:", data);
       }
     } catch (err) {
       console.error("Failed to create payment link", err);
+      alert("Something went wrong. Try again later.");
     }
   };
 

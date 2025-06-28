@@ -307,9 +307,9 @@ app.post("/create-payment-link", async (req, res) => {
 app.get("/rate", async (req, res) => {
   try {
     const response = await axios.get(
-      "https://api.binance.com/api/v3/ticker/price?symbol=USDTINR"
+      "https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=inr"
     );
-    const price = parseFloat(response.data.price);
+    const price = response.data.tether.inr;
     res.json({ rate: price });
   } catch (err) {
     console.error("❌ Rate fetch error:", err.message);
