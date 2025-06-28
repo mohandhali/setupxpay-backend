@@ -1,3 +1,5 @@
+const jwt = require("jsonwebtoken");
+const JWT_SECRET = "setupxpay_secret_key"; // Use env variable in production
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -92,7 +94,7 @@ app.post("/signup", async (req, res) => {
   }
 });
 
-// ✅ Login
+// ✅ Login with JWT
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -103,8 +105,16 @@ app.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
 
+    // ✅ Generate JWT token
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
     res.json({
       message: "Login successful",
+      token,
       user: {
         id: user._id,
         name: user.name,
@@ -117,6 +127,7 @@ app.post("/login", async (req, res) => {
     res.status(500).json({ error: "Login failed" });
   }
 });
+
 
 // ✅ Wallet Generation (public)
 app.get("/create-wallet", async (req, res) => {

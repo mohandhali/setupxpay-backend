@@ -1,10 +1,33 @@
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router"; // or useNavigate if using CRA
 import DepositUSDTModal from "./DepositUSDTModal";
 
-const Dashboard = ({ user }) => {
+const Dashboard = ({ user: userProp }) => {
+  const [user, setUser] = useState(userProp || null);
   const [balance, setBalance] = useState("0");
   const [transactions, setTransactions] = useState([]);
   const [showDeposit, setShowDeposit] = useState(false);
+  const router = useRouter(); // or useNavigate() for CRA
+
+  useEffect(() => {
+    // ✅ Load user from localStorage if not passed as prop
+    if (!userProp) {
+      const savedUser = localStorage.getItem("user");
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      } else {
+        // ❌ No user found, redirect to login
+        router.push("/login");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      fetchBalance();
+      fetchTransactions();
+    }
+  }, [user]);
 
   const fetchBalance = async () => {
     try {
@@ -26,10 +49,7 @@ const Dashboard = ({ user }) => {
     }
   };
 
-  useEffect(() => {
-    fetchBalance();
-    fetchTransactions();
-  }, []);
+  if (!user) return null; // wait for user to be loaded
 
   return (
     <div className="w-full max-w-3xl mx-auto mt-10 p-6 border rounded-lg shadow-lg">
