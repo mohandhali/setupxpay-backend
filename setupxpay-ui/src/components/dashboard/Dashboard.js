@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
+import DepositUSDTModal from "./DepositUSDTModal";
 
 const Dashboard = ({ user }) => {
   const [balance, setBalance] = useState("0");
   const [transactions, setTransactions] = useState([]);
+  const [showDeposit, setShowDeposit] = useState(false);
 
   const fetchBalance = async () => {
     try {
@@ -35,6 +37,13 @@ const Dashboard = ({ user }) => {
       <p>📬 <strong>Wallet Address:</strong><br />{user.walletAddress}</p>
       <p>💰 <strong>USDT Balance:</strong> {balance}</p>
 
+      <button
+        onClick={() => setShowDeposit(true)}
+        className="mt-4 bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded"
+      >
+        Deposit USDT
+      </button>
+
       <h3 className="text-lg font-semibold mt-6">📜 Transaction History</h3>
       {transactions.length === 0 ? (
         <p className="text-sm text-gray-500">No transactions yet.</p>
@@ -63,6 +72,13 @@ const Dashboard = ({ user }) => {
             ))}
           </tbody>
         </table>
+      )}
+
+      {showDeposit && (
+        <DepositUSDTModal
+          walletAddress={user.walletAddress}
+          onClose={() => setShowDeposit(false)}
+        />
       )}
     </div>
   );

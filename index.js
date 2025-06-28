@@ -303,6 +303,21 @@ app.post("/create-payment-link", async (req, res) => {
   }
 });
 
+// ✅ Get Live USDT Rate (Binance)
+app.get("/rate", async (req, res) => {
+  try {
+    const response = await axios.get(
+      "https://api.binance.com/api/v3/ticker/price?symbol=USDTINR"
+    );
+    const price = parseFloat(response.data.price);
+    res.json({ rate: price });
+  } catch (err) {
+    console.error("❌ Rate fetch error:", err.message);
+    res.status(500).json({ error: "Failed to fetch USDT rate" });
+  }
+});
+
+
 // 🚀 Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
