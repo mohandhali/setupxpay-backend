@@ -1,44 +1,63 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+
 import Signup from "./components/auth/Signup";
 import Login from "./components/auth/Login";
 import Dashboard from "./components/Dashboard";
 
 function App() {
-  const [view, setView] = useState("signup"); // 'signup' | 'login' | 'dashboard'
   const [user, setUser] = useState(null);
 
-  const handleSignupSuccess = () => {
-    setView("login"); // After signup, show Login
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
+  const handleLoginSuccess = ({ token, user }) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setUser(user);
   };
 
-  const handleLoginSuccess = (loggedInUser) => {
-    setUser(loggedInUser);
-    setView("dashboard");
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    setUser(null);
   };
 
   return (
-    <div className="p-4 flex flex-col items-center">
-      {view === "signup" && <Signup onSuccess={handleSignupSuccess} />}
-      {view === "login" && <Login onSuccess={handleLoginSuccess} />}
-      {view === "dashboard" && <Dashboard user={user} />}
-      
-      {view !== "dashboard" && (
-        <div className="mt-4">
-          {view === "signup" && (
-            <p className="text-sm">
-              Already have an account?{" "}
-              <button onClick={() => setView("login")} className="text-blue-500 underline">Login</button>
-            </p>
-          )}
-          {view === "login" && (
-            <p className="text-sm">
-              Don’t have an account?{" "}
-              <button onClick={() => setView("signup")} className="text-blue-500 underline">Sign up</button>
-            </p>
-          )}
-        </div>
-      )}
-    </div>
+    <Router>
+      <div className="p-4 flex flex-col items-center">
+        <Routes>
+          <Route
+            path="/"
+            element={
+              user ? <Navigate to="/dashboard" replace /> : <Navigate to="/signup" replace />
+            }
+          />
+          <Route
+            path="/signup"
+            element={<Signup onSuccess={() => (window.location.href = "/login")} />}
+          />
+          <Route
+            path="/login"
+            element={<Login onSuccess={handleLoginSuccess} />}
+          />
+          <Route
+            path="/dashboard"
+            element={
+              user ? (
+                <Dashboard user={user} onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/login" replace />
+              )
+            }
+          />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 

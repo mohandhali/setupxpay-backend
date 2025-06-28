@@ -21,7 +21,7 @@ const Signup = ({ onSuccess }) => {
 
       if (res.ok) {
         setMessage("✅ Account created successfully");
-        onSuccess(); // 👈 Switch to login
+        onSuccess(); // Switch to login page
       } else {
         setMessage(`❌ ${data.error || "Signup failed"}`);
       }

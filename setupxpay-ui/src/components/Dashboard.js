@@ -1,26 +1,22 @@
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router"; // or useNavigate if using CRA
+import { useNavigate } from "react-router-dom";
 import DepositUSDTModal from "./DepositUSDTModal";
 
-const Dashboard = ({ user: userProp }) => {
-  const [user, setUser] = useState(userProp || null);
+const Dashboard = () => {
+  const [user, setUser] = useState(null);
   const [balance, setBalance] = useState("0");
   const [transactions, setTransactions] = useState([]);
   const [showDeposit, setShowDeposit] = useState(false);
-  const router = useRouter(); // or useNavigate() for CRA
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // ✅ Load user from localStorage if not passed as prop
-    if (!userProp) {
-      const savedUser = localStorage.getItem("user");
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
-      } else {
-        // ❌ No user found, redirect to login
-        router.push("/login");
-      }
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    } else {
+      navigate("/login");
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     if (user) {
@@ -49,11 +45,26 @@ const Dashboard = ({ user: userProp }) => {
     }
   };
 
-  if (!user) return null; // wait for user to be loaded
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  if (!user) return null;
 
   return (
     <div className="w-full max-w-3xl mx-auto mt-10 p-6 border rounded-lg shadow-lg">
-      <h2 className="text-xl font-bold mb-4">👋 Welcome, {user.name}</h2>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-bold">👋 Welcome, {user.name}</h2>
+        <button
+          onClick={handleLogout}
+          className="text-red-600 hover:underline text-sm"
+        >
+          Logout
+        </button>
+      </div>
+
       <p>📬 <strong>Wallet Address:</strong><br />{user.walletAddress}</p>
       <p>💰 <strong>USDT Balance:</strong> {balance}</p>
 
@@ -78,13 +89,17 @@ const Dashboard = ({ user: userProp }) => {
             </tr>
           </thead>
           <tbody>
-            {transactions.map(tx => (
+            {transactions.map((tx) => (
               <tr key={tx._id}>
                 <td className="border p-2">{new Date(tx.createdAt).toLocaleString()}</td>
                 <td className="border p-2">₹{tx.amountInr}</td>
                 <td className="border p-2">{tx.usdtAmount}</td>
                 <td className="border p-2 text-blue-600 underline">
-                  <a href={`https://tronscan.org/#/transaction/${tx.txId}`} target="_blank" rel="noreferrer">
+                  <a
+                    href={`https://tronscan.org/#/transaction/${tx.txId}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     View
                   </a>
                 </td>
