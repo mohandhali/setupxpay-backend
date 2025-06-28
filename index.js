@@ -303,29 +303,50 @@ app.post("/create-payment-link", async (req, res) => {
   }
 });
 
-// ✅ Get Live USDT Rate (Binance)
-app.get("/rate", async (req, res) => {
+// ✅ BINANCE P2P LIVE RATE ENGINE
+let liveRateData = {
+  binanceRate: 0,
+  markup: 1,
+  userRate: 0,
+  updatedAt: new Date()
+};
+
+async function fetchBinanceRate() {
   try {
-    const response = await axios.get(
-      "https://api.coingecko.com/api/v3/simple/price",
+    const response = await axios.post(
+      "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search",
       {
-        params: {
-          ids: "tether",
-          vs_currencies: "inr",
-        },
+        page: 1,
+        rows: 1,
+        payTypes: ["UPI"],
+        asset: "USDT",
+        tradeType: "SELL",
+        fiat: "INR"
+      },
+      {
         headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
-          "Accept": "application/json",
-        },
+          "Content-Type": "application/json"
+        }
       }
     );
 
-    const price = response.data.tether.inr;
-    res.json({ rate: price });
-  } catch (err) {
-    console.error("❌ Rate fetch error:", err.message);
-    res.status(500).json({ error: "Failed to fetch USDT rate" });
+    const price = parseFloat(response.data.data[0].adv.price);
+    liveRateData.binanceRate = price;
+    liveRateData.userRate = parseFloat((price + liveRateData.markup).toFixed(2));
+    liveRateData.updatedAt = new Date();
+
+    console.log(`[✔] Binance Rate: ₹${price} | User Rate: ₹${liveRateData.userRate}`);
+  } catch (error) {
+    console.error("❌ Binance rate fetch failed:", error.message);
   }
+}
+
+setInterval(fetchBinanceRate, 15000); // every 15 sec
+fetchBinanceRate(); // first call
+
+// ✅ Route to serve live rate
+app.get("/rate", (req, res) => {
+  res.json({ rate: liveRateData.userRate });
 });
 
 

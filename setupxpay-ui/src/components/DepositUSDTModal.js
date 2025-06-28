@@ -34,7 +34,7 @@ const DepositUSDTModal = ({ walletAddress, onClose }) => {
 
       const data = await res.json();
       if (data.url) {
-        window.location.href = data.paymentLink;
+        window.location.href = data.url;
       } else {
         alert("Payment link creation failed.");
         console.error("Backend returned:", data);
