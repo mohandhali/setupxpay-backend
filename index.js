@@ -307,8 +307,14 @@ app.post("/create-payment-link", async (req, res) => {
 app.get("/rate", async (req, res) => {
   try {
     const response = await axios.get(
-      "https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=inr"
+      "https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=inr",
+      {
+        headers: {
+          'User-Agent': 'SetupXPayBackend/1.0', // <-- Required!
+        },
+      }
     );
+
     const price = response.data.tether.inr;
     res.json({ rate: price });
   } catch (err) {
@@ -316,6 +322,7 @@ app.get("/rate", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch USDT rate" });
   }
 });
+
 
 
 // 🚀 Start server
