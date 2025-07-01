@@ -267,42 +267,48 @@ app.get("/transactions", async (req, res) => {
 });
 
 // ✅ Razorpay Payment Link Generator
+const Razorpay = require("razorpay");
+
+const razorpay = new Razorpay({
+  key_id: "rzp_test_QflsX9eLx3HUJA", 
+  key_secret: "JsS6yJAtjqAVTd6Dxg7DkI7u", 
+});
+
 app.post("/create-payment-link", async (req, res) => {
   const { amountInr, walletAddress } = req.body;
 
   if (!amountInr || !walletAddress) {
-    return res.status(400).json({ error: "Missing amount or walletAddress" });
+    return res.status(400).json({ error: "Amount or wallet address missing." });
   }
 
   try {
-    const razorpay = new Razorpay({
-      key_id: "rzp_test_QflsX9eLx3HUJA",         
-      key_secret: "JsS6yJAtjqAVTd6Dxg7DkI7u"  
-    });
-
-    const link = await razorpay.paymentLink.create({
-      amount: amountInr * 100, // Razorpay expects amount in paise
+    const paymentLink = await razorpay.paymentLink.create({
+      amount: Number(amountInr) * 100, // INR to paisa
       currency: "INR",
-      description: `USDT deposit to ${walletAddress}`,
+      accept_partial: false,
+      description: `Deposit USDT to ${walletAddress}`,
       customer: {
         name: "SetupXPay User",
-        email: "user@setupxpay.com",
-        contact: "9999999999"
+        contact: "9000000000", // optional dummy number
+        email: "user@setupxpay.in", // optional dummy email
       },
       notify: {
         sms: false,
-        email: false
+        email: false,
       },
-      callback_url: "https://setupxpay-78bb7.web.app/payment-success", // Optional
+      callback_url: "https://setupxpay-78bb7.web.app/dashboard",
       callback_method: "get"
     });
 
-    res.json({ url: link.short_url });
+    console.log("✅ Payment link generated:", paymentLink.short_url);
+    res.json({ url: paymentLink.short_url });
+
   } catch (err) {
-    console.error("❌ Razorpay link creation failed:", err.response?.data || err.message);
+    console.error("❌ Razorpay error:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to generate Razorpay payment link" });
   }
 });
+
 
 
 // 🚀 Start server
