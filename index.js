@@ -266,28 +266,46 @@ app.post("/create-payment-link", async (req, res) => {
 // ===== Razorpay Webhook =====
 app.post("/webhook", async (req, res) => {
   const signature = req.headers["x-razorpay-signature"];
-  const payload = req.body;
-  const expected = crypto.createHmac("sha256", RAZORPAY_WEBHOOK_SECRET)
-    .update(req.body.toString("utf8")).digest("hex");
+  const rawBody = req.body.toString("utf8");
 
-  if (signature !== expected) return res.status(400).send("Invalid signature");
+  const expectedSignature = crypto
+    .createHmac("sha256", RAZORPAY_WEBHOOK_SECRET)
+    .update(rawBody)
+    .digest("hex");
+
+  if (signature !== expectedSignature) {
+    console.error("❌ Webhook signature mismatch");
+    return res.status(400).send("Invalid signature");
+  }
+
+  let event;
+  try {
+    event = JSON.parse(rawBody);
+  } catch (err) {
+    console.error("❌ Webhook JSON parse error:", err.message);
+    return res.status(400).send("Invalid JSON");
+  }
+
+  // ✅ Use payment.captured (notes.wallet is available)
+  if (event.event !== "payment.captured") {
+    console.log(`ℹ️ Ignored event: ${event.event}`);
+    return res.status(200).send("Ignored event");
+  }
+
+  const payment = event.payload.payment.entity;
+  const amountInr = payment.amount / 100;
+  const wallet = payment.notes?.wallet;
+
+  if (!wallet) {
+    console.error("❌ Wallet address missing in payment notes");
+    return res.status(400).send("Wallet missing");
+  }
 
   try {
-    const event = JSON.parse(req.body.toString("utf8"));
-    if (event.event !== "payment.link.paid") return res.status(200).send("Ignored");
-
-    const paymentLinkId = event.payload.payment_link.entity.id;
-    const pending = await PendingPayment.findOne({ paymentLinkId });
-    if (!pending) return res.status(404).send("Payment not found");
-
-    const user = await User.findById(pending.userId);
-    if (!user) return res.status(404).send("User not found");
-
-    const usdtRate = liveRateData.userRate || 83;
-    const usdtAmount = (pending.amountInr / usdtRate).toFixed(2);
+    const usdtAmount = (amountInr / liveRateData.userRate).toFixed(2);
 
     const txRes = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
-      to: user.walletAddress,
+      to: wallet,
       amount: usdtAmount,
       fromPrivateKey: SENDER_PRIVATE_KEY,
       tokenAddress: TOKEN_ADDRESS,
@@ -299,22 +317,21 @@ app.post("/webhook", async (req, res) => {
     const txId = txRes?.data?.txId || "unknown";
 
     await Transaction.create({
-      amountInr: pending.amountInr,
-      wallet: user.walletAddress,
+      amountInr,
+      wallet,
       txId,
       usdtAmount,
-      rate: usdtRate,
+      rate: liveRateData.userRate,
     });
 
-    await PendingPayment.deleteOne({ _id: pending._id });
-    console.log(`✅ Webhook success: ₹${pending.amountInr} → ${usdtAmount} USDT to ${user.walletAddress}`);
-    res.status(200).send("Webhook done");
-
+    console.log(`✅ Webhook processed: ₹${amountInr} → ${usdtAmount} USDT to ${wallet}`);
+    res.status(200).send("Success");
   } catch (err) {
-    console.error("❌ Webhook error:", err.message);
-    res.status(500).send("Webhook failed");
+    console.error("❌ USDT send failed:", err.message);
+    res.status(500).send("Failed to send USDT");
   }
 });
+
 
 // ===== Start Server =====
 app.listen(PORT, () => {
