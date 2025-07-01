@@ -118,7 +118,7 @@ app.post("/login", async (req, res) => {
 // ===== Get Wallet Balance =====
 app.get("/get-balance/:address", async (req, res) => {
   const address = req.params.address;
-  const usdtContract = "TXLAQ63Xg1NAzckPwKHvzw7CSEmLMEqcdj";
+  const usdtContract = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
 
   try {
     const response = await axios.get(`https://api.tatum.io/v3/tron/account/${address}`, {
