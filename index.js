@@ -266,6 +266,44 @@ app.get("/transactions", async (req, res) => {
   }
 });
 
+// ✅ Razorpay Payment Link Generator
+app.post("/create-payment-link", async (req, res) => {
+  const { amountInr, walletAddress } = req.body;
+
+  if (!amountInr || !walletAddress) {
+    return res.status(400).json({ error: "Missing amount or walletAddress" });
+  }
+
+  try {
+    const razorpay = new Razorpay({
+      key_id: "rzp_test_QflsX9eLx3HUJA",         
+      key_secret: "JsS6yJAtjqAVTd6Dxg7DkI7u"  
+    });
+
+    const link = await razorpay.paymentLink.create({
+      amount: amountInr * 100, // Razorpay expects amount in paise
+      currency: "INR",
+      description: `USDT deposit to ${walletAddress}`,
+      customer: {
+        name: "SetupXPay User",
+        email: "user@setupxpay.com",
+        contact: "9999999999"
+      },
+      notify: {
+        sms: false,
+        email: false
+      },
+      callback_url: "https://setupxpay-78bb7.web.app/payment-success", // Optional
+      callback_method: "get"
+    });
+
+    res.json({ url: link.short_url });
+  } catch (err) {
+    console.error("❌ Razorpay link creation failed:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to generate Razorpay payment link" });
+  }
+});
+
 
 // 🚀 Start server
 app.listen(PORT, () => {
