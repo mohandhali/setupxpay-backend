@@ -217,28 +217,51 @@ const razorpay = new Razorpay({
 });
 
 app.post("/create-payment-link", async (req, res) => {
-  const { amountInr, userId } = req.body;
-  const user = await User.findById(userId);
-  if (!user) return res.status(404).json({ error: "User not found" });
+  const { amountInr, userId, walletAddress } = req.body;
 
-  const paymentLink = await razorpay.paymentLink.create({
-    amount: Number(amountInr) * 100,
-    currency: "INR",
-    description: `Deposit USDT`,
-    customer: {
-      name: user.name,
-      contact: "9000000000",
-      email: user.email,
-    },
-    notify: { sms: false, email: false },
-    callback_url: "https://setupxpay-78bb7.web.app/dashboard",
-    callback_method: "get"
-  });
+  let resolvedWallet = walletAddress;
 
-  await PendingPayment.create({ userId, amountInr, paymentLinkId: paymentLink.id });
-  console.log("✅ Payment link created:", paymentLink.short_url);
-  res.json({ url: paymentLink.short_url });
+  try {
+    if (userId && !walletAddress) {
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ error: "User not found" });
+      resolvedWallet = user.walletAddress;
+    }
+
+    if (!amountInr || !resolvedWallet) {
+      return res.status(400).json({ error: "Amount or wallet address missing." });
+    }
+
+    const paymentLink = await razorpay.paymentLink.create({
+      amount: Number(amountInr) * 100,
+      currency: "INR",
+      accept_partial: false,
+      description: `Deposit USDT to ${resolvedWallet}`,
+      notes: {
+        wallet: resolvedWallet
+      },
+      customer: {
+        name: "SetupXPay User",
+        contact: "9000000000",
+        email: "user@setupxpay.in",
+      },
+      notify: {
+        sms: false,
+        email: false,
+      },
+      callback_url: "https://setupxpay-78bb7.web.app/dashboard",
+      callback_method: "get"
+    });
+
+    console.log("✅ Payment link generated:", paymentLink.short_url);
+    res.json({ url: paymentLink.short_url });
+
+  } catch (err) {
+    console.error("❌ Razorpay error:", err.response?.data || err.message);
+    res.status(500).json({ error: "Failed to generate Razorpay payment link" });
+  }
 });
+
 
 // ===== Razorpay Webhook =====
 app.post("/webhook", async (req, res) => {
