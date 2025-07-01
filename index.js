@@ -267,7 +267,6 @@ app.get("/transactions", async (req, res) => {
 });
 
 // ✅ Razorpay Payment Link Generator
-const Razorpay = require("razorpay");
 
 const razorpay = new Razorpay({
   key_id: "rzp_test_QflsX9eLx3HUJA", 
