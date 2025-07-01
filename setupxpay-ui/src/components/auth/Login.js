@@ -3,9 +3,11 @@ import React, { useState } from "react";
 const Login = ({ onSuccess }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault(); // prevent page reload
+
     try {
       const res = await fetch("https://setupxpay-backend.onrender.com/login", {
         method: "POST",
@@ -15,48 +17,48 @@ const Login = ({ onSuccess }) => {
 
       const data = await res.json();
 
-      if (res.ok && data.token) {
-        // ✅ Success: call onSuccess with user and token
+      if (res.ok && data.token && data.user) {
         onSuccess({ token: data.token, user: data.user });
       } else {
-        setMessage(data.error || "Login failed");
+        setError(data.error || "Login failed");
       }
     } catch (err) {
-      console.error("Login error", err);
-      setMessage("Something went wrong. Try again.");
+      setError("Something went wrong. Try again.");
+      console.error("Login error:", err);
     }
   };
 
   return (
-    <div className="p-4 max-w-md mx-auto mt-10 border rounded-lg shadow">
+    <div className="w-full max-w-md mx-auto mt-10 p-6 border rounded-lg shadow-lg">
       <h2 className="text-xl font-bold mb-4">🔐 Login</h2>
-      <input
-        type="email"
-        placeholder="Email"
-        value={email}
-        className="border w-full p-2 mb-3 rounded"
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        className="border w-full p-2 mb-3 rounded"
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      <button
-        onClick={handleLogin}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 w-full"
-      >
-        Login
-      </button>
-
-      {message && <p className="text-sm mt-2 text-red-600">{message}</p>}
+      <form onSubmit={handleLogin} className="space-y-4">
+        <input
+          type="email"
+          placeholder="📧 Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+        <input
+          type="password"
+          placeholder="🔐 Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+        <button
+          type="submit"
+          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+        >
+          Login
+        </button>
+      </form>
+      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
       <p className="text-sm mt-4">
-        Don’t have an account?{" "}
-        <a href="/signup" className="text-blue-600 underline">Sign up</a>
+        Don't have an account?{" "}
+        <a href="/signup" className="text-blue-500 underline">Sign up</a>
       </p>
     </div>
   );

@@ -1,76 +1,90 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Signup = ({ onSuccess }) => {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [message, setMessage] = useState("");
+  const [formData, setFormData] = useState({ name: "", email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const onSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError("");
+
     try {
-      const res = await fetch("https://setupxpay-backend.onrender.com/signup", {
+      const response = await fetch("https://setupxpay-backend.onrender.com/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(formData),
       });
 
-      const data = await res.json();
-
-      if (res.ok) {
-        setMessage("✅ Account created successfully");
-        onSuccess(); // Switch to login page
+      const data = await response.json();
+      if (response.ok) {
+        alert("Signup successful. Please log in.");
+        navigate("/login");
       } else {
-        setMessage(`❌ ${data.error || "Signup failed"}`);
+        setError(data.error || "Signup failed");
       }
-    } catch (error) {
-      console.error("❌ Signup error:", error);
-      setMessage("❌ Signup error: " + error.message);
+    } catch (err) {
+      setError("Something went wrong");
     }
+
+    setLoading(false);
   };
 
   return (
-    <div className="w-full max-w-md mx-auto mt-10 p-6 border rounded-lg shadow-lg">
-      <h2 className="text-xl font-bold mb-4">🚀 Sign Up</h2>
-      <form onSubmit={onSubmit} className="space-y-4">
+    <div className="w-full max-w-sm">
+      <h2 className="text-2xl font-bold mb-4">Sign Up</h2>
+      <form onSubmit={handleSubmit} className="space-y-3">
         <input
           type="text"
           name="name"
-          placeholder="👤 Name"
-          value={form.name}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
+          placeholder="Name"
           required
+          onChange={handleChange}
+          className="border p-2 w-full"
         />
         <input
           type="email"
           name="email"
-          placeholder="📧 Email"
-          value={form.email}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
+          placeholder="Email"
           required
+          onChange={handleChange}
+          className="border p-2 w-full"
         />
         <input
           type="password"
           name="password"
-          placeholder="🔐 Password"
-          value={form.password}
-          onChange={handleChange}
-          className="w-full p-2 border rounded"
+          placeholder="Password"
           required
+          onChange={handleChange}
+          className="border p-2 w-full"
         />
         <button
           type="submit"
-          className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700"
+          disabled={loading}
+          className="bg-blue-500 text-white px-4 py-2 rounded"
         >
-          Sign Up
+          {loading ? "Creating..." : "Sign Up"}
         </button>
+        {error && <p className="text-red-500 text-sm">{error}</p>}
       </form>
 
-      {message && <div className="text-sm mt-2">{message}</div>}
+      {/* ✅ Show Login option below */}
+      <p className="mt-4 text-sm text-center">
+        Already have an account?{" "}
+        <button
+          onClick={() => navigate("/login")}
+          className="text-blue-500 underline"
+        >
+          Login
+        </button>
+      </p>
     </div>
   );
 };
