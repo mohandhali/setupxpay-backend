@@ -43,7 +43,13 @@ function App() {
           />
           <Route
             path="/login"
-            element={<Login onSuccess={handleLoginSuccess} />}
+            element={
+              user ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <Login onSuccess={handleLoginSuccess} />
+              )
+            }
           />
           <Route
             path="/dashboard"

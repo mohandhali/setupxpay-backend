@@ -252,6 +252,21 @@ app.get("/rate", (req, res) => {
   res.json({ rate: liveRateData.userRate });
 });
 
+// ✅ Transaction History Route
+app.get("/transactions", async (req, res) => {
+  const { wallet } = req.query;
+  if (!wallet) return res.status(400).json({ error: "Wallet address required" });
+
+  try {
+    const txs = await Transaction.find({ wallet }).sort({ createdAt: -1 });
+    res.json(txs);
+  } catch (err) {
+    console.error("❌ Error fetching transactions:", err.message);
+    res.status(500).json({ error: "Failed to fetch transactions" });
+  }
+});
+
+
 // 🚀 Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
