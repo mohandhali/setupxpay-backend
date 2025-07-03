@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.setupxpay.app",
+      "sha256_cert_fingerprints": [
+        "9C:1A:B1:58:C7:DC:B5:23:88:64:73:EC:C7:ED:F1:A0:99:1D:BB:A4:23:44:F0:C4:2A:56:D3:33:CD:18:C0:67"
+      ]
+    }
+  }
+]

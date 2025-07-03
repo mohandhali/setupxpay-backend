@@ -7668,15 +7668,6 @@ androidx.viewpager.widget.ViewPager$SavedState
 androidx.viewpager.widget.ViewPager$SimpleOnPageChangeListener
 androidx.viewpager.widget.ViewPager$ViewPositionComparator
 androidx.viewpager.widget.ViewPager
-app.web.setupxpay_78bb7.twa.R$bool
-app.web.setupxpay_78bb7.twa.R$color
-app.web.setupxpay_78bb7.twa.R$drawable
-app.web.setupxpay_78bb7.twa.R$integer
-app.web.setupxpay_78bb7.twa.R$mipmap
-app.web.setupxpay_78bb7.twa.R$raw
-app.web.setupxpay_78bb7.twa.R$string
-app.web.setupxpay_78bb7.twa.R$xml
-app.web.setupxpay_78bb7.twa.R
 com.google.androidbrowserhelper.BuildConfig
 com.google.androidbrowserhelper.R$drawable:
     private void <init>()
@@ -10286,6 +10277,15 @@ com.google.j2objc.annotations.WeakOuter
 com.google.thirdparty.publicsuffix.PublicSuffixPatterns
 com.google.thirdparty.publicsuffix.PublicSuffixType
 com.google.thirdparty.publicsuffix.TrieParser
+com.setupxpay.app.R$bool
+com.setupxpay.app.R$color
+com.setupxpay.app.R$drawable
+com.setupxpay.app.R$integer
+com.setupxpay.app.R$mipmap
+com.setupxpay.app.R$raw
+com.setupxpay.app.R$string
+com.setupxpay.app.R$xml
+com.setupxpay.app.R
 kotlin.ArrayIntrinsicsKt
 kotlin.BuilderInference
 kotlin.CharCodeJVMKt

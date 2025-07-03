@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import { register } from './serviceWorkerRegistration'; // ✅ ADD THIS
+import { unregister } from './serviceWorkerRegistration'; // ✅ Correct import
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -12,7 +12,7 @@ root.render(
   </React.StrictMode>
 );
 
-// ✅ Register the service worker
-register();
+// ✅ Unregister service worker to prevent caching issues in .apk
+unregister();
 
 reportWebVitals();

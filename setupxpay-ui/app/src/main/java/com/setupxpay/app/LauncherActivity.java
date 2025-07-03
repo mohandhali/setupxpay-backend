@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package app.web.setupxpay_78bb7.twa;
+package com.setupxpay.app;
 
 import android.content.pm.ActivityInfo;
 import android.net.Uri;

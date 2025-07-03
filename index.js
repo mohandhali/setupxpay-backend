@@ -27,7 +27,11 @@ mongoose.connect("mongodb+srv://setupxadmin:WavMOQBBj3I2IcW9@cluster0.em2tu28.mo
 
 // ===== Middleware =====
 app.use(cors({
-  origin: "https://setupxpay-78bb7.web.app",
+  origin: [
+    "https://setupxpay-78bb7.web.app", // Firebase app
+    "https://setupxpay.com",           // ✅ Custom domain
+    "https://www.setupxpay.com"        // Optional www redirect
+  ],
   credentials: true,
 }));
 app.use("/webhook", express.raw({ type: "application/json" }));
@@ -249,7 +253,7 @@ app.post("/create-payment-link", async (req, res) => {
         sms: false,
         email: false,
       },
-      callback_url: "https://setupxpay-78bb7.web.app/dashboard",
+      callback_url: "https://setupxpay.com/dashboard",
       callback_method: "get"
     });
 

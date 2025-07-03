@@ -8,7 +8,7 @@
     <!-- Value from default config. -->
     <bool name="enableSiteSettingsShortcut">true</bool>
     <!-- Value from default config. -->
-    <color name="backgroundColor">#FFFFFF</color>
+    <color name="backgroundColor">#F3F4F6</color>
     <!-- Value from default config. -->
     <color name="colorPrimary">#2563EB</color>
     <!-- Value from default config. -->
@@ -24,24 +24,24 @@
     <!-- Value from default config. -->
     <integer name="splashScreenFadeOutDuration">300</integer>
     <!-- Value from default config. -->
-    <string name="appName" translatable="false">SetupXPay – INR to USDT</string>
+    <string name="appName" translatable="false">SetupXPay – INR ⇄ USDT Wallet</string>
     <!-- Value from default config. -->
     <string name="fallbackType" translatable="false">customtabs</string>
     <!-- Value from default config. -->
-    <string name="fullScopeUrl" translatable="false">https://setupxpay-78bb7.web.app/</string>
+    <string name="fullScopeUrl" translatable="false">https://setupxpay.com/</string>
     <!-- Value from default config. -->
     <string name="generatorApp" translatable="false">bubblewrap-cli</string>
     <!-- Value from default config. -->
-    <string name="hostName" translatable="false">setupxpay-78bb7.web.app</string>
+    <string name="hostName" translatable="false">setupxpay.com</string>
     <!-- Value from default config. -->
-    <string name="launchUrl" translatable="false">https://setupxpay-78bb7.web.app/</string>
+    <string name="launchUrl" translatable="false">https://setupxpay.com/</string>
     <!-- Value from default config. -->
     <string name="launcherName" translatable="false">SetupXPay</string>
     <!-- Value from default config. -->
     <string name="orientation" translatable="false">portrait</string>
     <!-- Value from default config. -->
-    <string name="providerAuthority" translatable="false">app.web.setupxpay_78bb7.twa.fileprovider</string>
+    <string name="providerAuthority" translatable="false">com.setupxpay.app.fileprovider</string>
     <!-- Value from default config. -->
-    <string name="webManifestUrl" translatable="false">https://setupxpay-78bb7.web.app/manifest.json</string>
+    <string name="webManifestUrl" translatable="false">https://setupxpay.com/manifest.json</string>
 
 </resources>

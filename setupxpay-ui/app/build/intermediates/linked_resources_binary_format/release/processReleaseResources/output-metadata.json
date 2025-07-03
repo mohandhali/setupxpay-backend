@@ -4,7 +4,7 @@
     "type": "LINKED_RESOURCES_BINARY_FORMAT",
     "kind": "Directory"
   },
-  "applicationId": "app.web.setupxpay_78bb7.twa",
+  "applicationId": "com.setupxpay.app",
   "variantName": "release",
   "elements": [
     {

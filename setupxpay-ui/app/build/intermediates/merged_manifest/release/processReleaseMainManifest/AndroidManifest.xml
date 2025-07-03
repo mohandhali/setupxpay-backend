@@ -22,7 +22,7 @@
      the abbreviated format.
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="app.web.setupxpay_78bb7.twa"
+    package="com.setupxpay.app"
     android:versionCode="2"
     android:versionName="2" >
 
@@ -43,13 +43,13 @@
     </queries>
 
     <permission
-        android:name="app.web.setupxpay_78bb7.twa.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+        android:name="com.setupxpay.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         android:protectionLevel="signature" />
 
-    <uses-permission android:name="app.web.setupxpay_78bb7.twa.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+    <uses-permission android:name="com.setupxpay.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
 
     <application
-        android:name="app.web.setupxpay_78bb7.twa.Application"
+        android:name="com.setupxpay.app.Application"
         android:allowBackup="true"
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:extractNativeLibs="true"
@@ -74,7 +74,7 @@
                 android:value="@string/launchUrl" />
         </activity>
         <activity
-            android:name="app.web.setupxpay_78bb7.twa.LauncherActivity"
+            android:name="com.setupxpay.app.LauncherActivity"
             android:alwaysRetainTaskState="true"
             android:exported="true"
             android:label="@string/launcherName" >
@@ -118,6 +118,9 @@
                 android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY"
                 android:value="@string/fallbackType" />
             <meta-data
+                android:name="android.support.customtabs.trusted.DISPLAY_MODE"
+                android:value="immersive" />
+            <meta-data
                 android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION"
                 android:value="@string/orientation" />
 
@@ -153,7 +156,7 @@
         </provider>
 
         <service
-            android:name="app.web.setupxpay_78bb7.twa.DelegationService"
+            android:name="com.setupxpay.app.DelegationService"
             android:enabled="@bool/enableNotification"
             android:exported="@bool/enableNotification" >
             <meta-data
@@ -171,7 +174,7 @@
 
         <provider
             android:name="androidx.startup.InitializationProvider"
-            android:authorities="app.web.setupxpay_78bb7.twa.androidx-startup"
+            android:authorities="com.setupxpay.app.androidx-startup"
             android:exported="false" >
             <meta-data
                 android:name="androidx.emoji2.text.EmojiCompatInitializer"

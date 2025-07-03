@@ -1,4 +1,4 @@
-package app.web.setupxpay_78bb7.twa;
+package com.setupxpay.app;
 
 
 
