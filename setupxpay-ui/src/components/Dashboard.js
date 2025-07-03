@@ -15,18 +15,38 @@ const Dashboard = () => {
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        const parsed = JSON.parse(storedUser);
+        if (parsed && parsed.walletAddress) {
+          setUser(parsed);
+        } else {
+          navigate("/");
+        }
+      } catch {
+        navigate("/");
+      }
     } else {
-      navigate("/login");
+      navigate("/");
     }
   }, [navigate]);
 
   useEffect(() => {
-    if (user) {
+    if (user?.walletAddress) {
       fetchBalance();
       fetchTransactions();
     }
   }, [user]);
+
+  // ✅ Show success message if redirected from payment
+  useEffect(() => {
+    const paymentStatus = localStorage.getItem("paymentStatus");
+    if (paymentStatus === "success") {
+      localStorage.removeItem("paymentStatus");
+      setTimeout(() => {
+        alert("✅ Payment received successfully!");
+      }, 500);
+    }
+  }, []);
 
   const fetchBalance = async () => {
     try {
@@ -51,17 +71,16 @@ const Dashboard = () => {
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    navigate("/login");
+    navigate("/");
   };
 
   if (!user) return null;
 
   return (
-    <div className="min-h-screen w-full px-4 py-6 flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-blue-300">
+    <div className="fixed inset-0 bg-gradient-to-br from-blue-100 to-blue-300 overflow-auto px-4 py-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-blue-900">Dashboard</h2>
-
         <div className="relative">
           <FaUserCircle
             className="text-3xl text-blue-700 cursor-pointer"
@@ -81,23 +100,15 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Wallet Info Card */}
+      {/* Wallet Info */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-6 text-center">
         <p className="text-lg font-semibold text-gray-700 mb-1">Wallet Address</p>
         <p className="text-xs text-blue-800 break-all mb-4">{user.walletAddress}</p>
-
-        {/* ✅ QR Code */}
         <div className="flex justify-center mb-4">
           <div className="bg-white p-2 rounded-lg shadow">
-            <QRCode
-              value={user.walletAddress}
-              size={120}
-              bgColor="#ffffff"
-              fgColor="#000000"
-            />
+            <QRCode value={user.walletAddress} size={120} bgColor="#ffffff" fgColor="#000000" />
           </div>
         </div>
-
         <p className="text-md text-gray-600 font-medium">
           💰 USDT Balance:{" "}
           <span className="text-green-700 font-semibold">{balance}</span>
@@ -114,8 +125,8 @@ const Dashboard = () => {
         </button>
       </div>
 
-      {/* Transaction History */}
-      <div className="bg-white rounded-xl shadow-md p-4">
+      {/* Transactions */}
+      <div className="bg-white rounded-xl shadow-md p-4 mb-8">
         <h3 className="text-lg font-semibold mb-4 text-gray-800">📜 Transaction History</h3>
         {transactions.length === 0 ? (
           <p className="text-sm text-gray-500">No transactions yet.</p>
@@ -137,7 +148,11 @@ const Dashboard = () => {
                     <td className="p-2 border">₹{tx.amountInr}</td>
                     <td className="p-2 border">{tx.usdtAmount}</td>
                     <td className="p-2 border text-blue-600 underline">
-                      <a href={`https://tronscan.org/#/transaction/${tx.txId}`} target="_blank" rel="noreferrer">
+                      <a
+                        href={`https://tronscan.org/#/transaction/${tx.txId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
                         View
                       </a>
                     </td>

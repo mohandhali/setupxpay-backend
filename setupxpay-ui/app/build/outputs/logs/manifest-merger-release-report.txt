@@ -198,9 +198,9 @@ ADDED from C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml
 	android:name
 		ADDED from C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:119:24-91
 meta-data#android.support.customtabs.trusted.DISPLAY_MODE
-ADDED from C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:125:13-126:45
+ADDED from C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:125:13-126:46
 	android:value
-		ADDED from C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:126:17-42
+		ADDED from C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:126:17-43
 	android:name
 		ADDED from C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:125:24-86
 meta-data#android.support.customtabs.trusted.SCREEN_ORIENTATION

@@ -253,7 +253,7 @@ app.post("/create-payment-link", async (req, res) => {
         sms: false,
         email: false,
       },
-      callback_url: "https://setupxpay.com/dashboard",
+      callback_url: "https://setupxpay.com/payment-success",
       callback_method: "get"
     });
 
@@ -336,6 +336,35 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
+// ===== Razorpay Modal Payment Order (for inline checkout) =====
+app.post("/create-payment-order", async (req, res) => {
+  const { amountInr, walletAddress } = req.body;
+
+  if (!amountInr || !walletAddress) {
+    return res.status(400).json({ error: "Amount or wallet address missing" });
+  }
+
+  try {
+    const order = await razorpay.orders.create({
+      amount: amountInr * 100, // ₹ to paise
+      currency: "INR",
+      receipt: `order_rcptid_${Date.now()}`,
+      notes: { wallet: walletAddress },
+    });
+
+    console.log("✅ Razorpay order created:", order.id);
+
+    res.json({
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key: "rzp_test_QflsX9eLx3HUJA", // 👉 replace with live key when needed
+    });
+  } catch (error) {
+    console.error("❌ Razorpay order creation failed:", error);
+    res.status(500).json({ error: "Failed to create Razorpay order" });
+  }
+});
 
 // ===== Start Server =====
 app.listen(PORT, () => {

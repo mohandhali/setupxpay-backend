@@ -200,11 +200,11 @@
 119                android:value="@string/fallbackType" />
 119-->C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:120:17-53
 120            <meta-data
-120-->C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:125:13-126:45
+120-->C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:125:13-126:46
 121                android:name="android.support.customtabs.trusted.DISPLAY_MODE"
 121-->C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:125:24-86
-122                android:value="immersive" />
-122-->C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:126:17-42
+122                android:value="standalone" />
+122-->C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:126:17-43
 123            <meta-data
 123-->C:\Users\User\setupxpay\setupxpay-ui\app\src\main\AndroidManifest.xml:129:13-130:54
 124                android:name="android.support.customtabs.trusted.SCREEN_ORIENTATION"

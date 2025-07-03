@@ -4,7 +4,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Signup from "./components/auth/Signup";
 import Login from "./components/auth/Login";
 import Dashboard from "./components/Dashboard";
-import LandingPage from "./components/LandingPage"; // ✅ New LandingPage
+import LandingPage from "./components/LandingPage";
+import PaymentSuccess from "./components/PaymentSuccess"; // ✅ New success screen
 
 function App() {
   const [user, setUser] = useState(null);
@@ -32,17 +33,20 @@ function App() {
     <Router>
       <div className="p-4 flex flex-col items-center">
         <Routes>
-          {/* ✅ Default route shows LandingPage */}
+
+          {/* ✅ Landing Page */}
           <Route
             path="/"
             element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />}
           />
 
+          {/* ✅ Signup */}
           <Route
             path="/signup"
             element={<Signup onSuccess={() => (window.location.href = "/login")} />}
           />
 
+          {/* ✅ Login */}
           <Route
             path="/login"
             element={
@@ -54,6 +58,7 @@ function App() {
             }
           />
 
+          {/* ✅ Dashboard (only if logged in) */}
           <Route
             path="/dashboard"
             element={
@@ -64,6 +69,10 @@ function App() {
               )
             }
           />
+
+          {/* ✅ Razorpay redirect page */}
+          <Route path="/payment-success" element={<PaymentSuccess />} />
+
         </Routes>
       </div>
     </Router>

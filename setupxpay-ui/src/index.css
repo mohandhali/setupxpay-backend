@@ -50,6 +50,9 @@ input, textarea, select {
 
 /* Prevent scrolling bounce on iOS */
 body {
+  margin: 0;
+  padding: 0;
+  background-color: #bfdbfe;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
 }

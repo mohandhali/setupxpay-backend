@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 
 const Signup = ({ onSuccess }) => {
   const [name, setName] = useState("");
@@ -21,7 +22,7 @@ const Signup = ({ onSuccess }) => {
 
       const data = await res.json();
       if (res.ok) {
-        onSuccess(); // redirects to login
+        onSuccess(); // redirect to login
       } else {
         setError(data.error || "Signup failed");
       }
@@ -31,64 +32,70 @@ const Signup = ({ onSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen w-full px-4 py-6 flex flex-col items-center justify-center bg-gradient-to-br from-blue-100 to-blue-300">
-      <div className="bg-white w-full max-w-sm sm:max-w-md p-6 sm:p-8 rounded-xl shadow-xl animate-slideFadeIn">
-        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center text-blue-800">Create Account</h2>
+    <div className="fixed inset-0 bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center px-4 py-8 overflow-hidden">
+      <motion.div
+        className="w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-xl"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h2 className="text-3xl font-extrabold text-blue-800 text-center mb-6">Create Your Wallet</h2>
 
-        {error && <p className="text-red-600 mb-4 text-sm text-center">{error}</p>}
+        {error && <p className="text-red-600 text-sm text-center mb-4">{error}</p>}
 
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Full Name</label>
+            <label className="text-sm text-gray-700">Full Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="mt-1 w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-0"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Email</label>
+            <label className="text-sm text-gray-700">Email Address</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="mt-1 w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-0"
               required
             />
           </div>
 
           <div>
-            <label className="block text-sm text-gray-600 mb-1">Password</label>
+            <label className="text-sm text-gray-700">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="mt-1 w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-0"
               required
             />
           </div>
 
-          <button
+          <motion.button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg transition-transform hover:scale-[1.02]"
+            whileTap={{ scale: 0.97 }}
+            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-2.5 rounded-2xl transition-all shadow-md"
           >
             Sign Up
-          </button>
+          </motion.button>
         </form>
 
-        <p className="mt-5 text-sm text-center text-gray-500">
+        <p className="mt-5 text-sm text-center text-gray-600">
           Already have an account?{" "}
           <span
             onClick={() => navigate("/login")}
-            className="text-blue-600 font-semibold hover:underline cursor-pointer"
+            className="text-blue-700 font-semibold cursor-pointer hover:underline"
           >
             Login
           </span>
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 };
