@@ -154,6 +154,7 @@ const Dashboard = () => {
                   <th className="p-2 border">INR</th>
                   <th className="p-2 border">USDT</th>
                   <th className="p-2 border">Tx ID</th>
+                  <th className="p-2 border">Type</th>
                 </tr>
               </thead>
               <tbody>
@@ -163,6 +164,7 @@ const Dashboard = () => {
                     <td className="p-2 border">₹{tx.amountInr}</td>
                     <td className="p-2 border">{tx.usdtAmount}</td>
                     <td className="p-2 border text-blue-600 underline">
+                    <td className="p-2 border">{tx.type}</td> 
                       <a
                         href={`https://tronscan.org/#/transaction/${tx.txId}`}
                         target="_blank"

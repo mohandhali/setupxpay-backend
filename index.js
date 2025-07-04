@@ -39,11 +39,14 @@ app.use(bodyParser.json());
 
 // ===== Schemas =====
 const Transaction = mongoose.model("Transaction", new mongoose.Schema({
+  type: { type: String, required: true },          // deposit / withdraw
   amountInr: Number,
+  usdtAmount: String,
   wallet: String,
   txId: String,
-  usdtAmount: String,
   rate: Number,
+  fee: String,                                      // ✅ New field
+  network: String,                                  // ✅ New field: trc20 / bep20
   createdAt: { type: Date, default: Date.now }
 }));
 
@@ -321,10 +324,11 @@ app.post("/webhook", async (req, res) => {
     const txId = txRes?.data?.txId || "unknown";
 
     await Transaction.create({
+      type: "deposit",
       amountInr,
+      usdtAmount,
       wallet,
       txId,
-      usdtAmount,
       rate: liveRateData.userRate,
     });
 
@@ -366,23 +370,6 @@ app.post("/create-payment-order", async (req, res) => {
   }
 });
 
-// ===== Helper function to send USDT using Tatum (TRC20) =====
-async function sendUSDTviaTatum(from, to, amount) {
-  const response = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
-    to,
-    amount,
-    fromPrivateKey: SENDER_PRIVATE_KEY,
-    tokenAddress: TOKEN_ADDRESS,
-    feeLimit: 1000,
-  }, {
-    headers: {
-      "x-api-key": TATUM_API_KEY,
-      "Content-Type": "application/json"
-    }
-  });
-
-  return response.data; // should include txId
-}
 
 
 // ===== withdraw usdt =====
@@ -398,14 +385,28 @@ app.post("/withdraw", async (req, res) => {
   }
 
   try {
-    // Call Tatum TRC20 API (already set up earlier)
-    const response = await sendUSDTviaTatum(from, to, amount); // your helper function
+    // Call Tatum TRC20 API
+    const response = await sendUSDTviaTatum(from, to, amount); // 🚀 Success here
+
+    // ✅ Save to MongoDB transaction log
+    await Transaction.create({
+      type: "withdraw",
+      amountInr: null,
+      usdtAmount: amount,
+      wallet: to,
+      txId: response.txId,
+      rate: null,
+      fee: "1",                // ✅ Static for now, update dynamically if needed
+      network: network,        // ✅ Store trc20/bep20 etc
+    });
+
     return res.json({ success: true, txId: response.txId });
   } catch (err) {
     console.error("❌ Withdraw failed:", err);
     return res.status(500).json({ success: false, error: "Withdraw error" });
   }
 });
+
 
 
 // ===== Start Server =====
