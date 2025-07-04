@@ -13,7 +13,7 @@ const User = require("./models/User");
 const app = express();
 const PORT = 5000;
 const withdrawRoutes = require("./routes/withdraw");
-app.use("/withdraw", withdrawRoutes);
+
 
 
 // ===== Config =====
@@ -31,14 +31,17 @@ mongoose.connect("mongodb+srv://setupxadmin:WavMOQBBj3I2IcW9@cluster0.em2tu28.mo
 // ===== Middleware =====
 app.use(cors({
   origin: [
-    "https://setupxpay-78bb7.web.app", // Firebase app
-    "https://setupxpay.com",           // ✅ Custom domain
-    "https://www.setupxpay.com"        // Optional www redirect
+    "https://setupxpay-78bb7.web.app",
+    "https://setupxpay.com",
+    "https://www.setupxpay.com"
   ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
 app.use("/webhook", express.raw({ type: "application/json" }));
 app.use(bodyParser.json());
+app.use("/withdraw", withdrawRoutes);
 
 // ===== Schemas =====
 const Transaction = mongoose.model("Transaction", new mongoose.Schema({

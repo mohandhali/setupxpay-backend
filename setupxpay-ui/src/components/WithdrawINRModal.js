@@ -2,30 +2,42 @@ import React, { useState } from "react";
 
 const WithdrawINRModal = ({ userId, onClose }) => {
   const [amount, setAmount] = useState("");
+  const [method, setMethod] = useState("bank"); // 'bank' or 'upi'
+
   const [accountHolder, setAccountHolder] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [ifsc, setIfsc] = useState("");
   const [upiId, setUpiId] = useState("");
 
   const handleWithdraw = async () => {
-    if (!amount || !accountHolder || !accountNumber || !ifsc) {
-      alert("Please fill all required fields");
+    if (!amount) {
+      alert("Please enter amount");
       return;
     }
 
-    const res = await fetch("https://your-backend.com/withdraw/inr-mock", {
+    if (method === "bank") {
+      if (!accountHolder || !accountNumber || !ifsc) {
+        alert("Please fill all bank details");
+        return;
+      }
+    } else if (method === "upi") {
+      if (!upiId) {
+        alert("Please enter UPI ID");
+        return;
+      }
+    }
+
+    const res = await fetch("https://setupxpay-backend.onrender.com/withdraw/inr-mock", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         userId,
         amount,
         bankDetails: {
-          accountHolder,
-          accountNumber,
-          ifsc,
-          upiId,
+          accountHolder: method === "bank" ? accountHolder : "",
+          accountNumber: method === "bank" ? accountNumber : "",
+          ifsc: method === "bank" ? ifsc : "",
+          upiId: method === "upi" ? upiId : "",
         },
       }),
     });
@@ -34,7 +46,7 @@ const WithdrawINRModal = ({ userId, onClose }) => {
 
     if (data.success) {
       alert("✅ INR Withdraw request (mock) successful!");
-      onClose(); // Close the modal
+      onClose();
     } else {
       alert("❌ Withdrawal failed!");
     }
@@ -50,42 +62,71 @@ const WithdrawINRModal = ({ userId, onClose }) => {
           placeholder="Amount (₹)"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="w-full p-2 mb-2 border rounded"
-        />
-
-        <input
-          type="text"
-          placeholder="Account Holder Name"
-          value={accountHolder}
-          onChange={(e) => setAccountHolder(e.target.value)}
-          className="w-full p-2 mb-2 border rounded"
-        />
-
-        <input
-          type="text"
-          placeholder="Account Number"
-          value={accountNumber}
-          onChange={(e) => setAccountNumber(e.target.value)}
-          className="w-full p-2 mb-2 border rounded"
-        />
-
-        <input
-          type="text"
-          placeholder="IFSC Code"
-          value={ifsc}
-          onChange={(e) => setIfsc(e.target.value)}
-          className="w-full p-2 mb-2 border rounded"
-        />
-
-        <input
-          type="text"
-          placeholder="Optional: UPI ID"
-          value={upiId}
-          onChange={(e) => setUpiId(e.target.value)}
           className="w-full p-2 mb-4 border rounded"
         />
 
-        <div className="flex justify-end gap-4">
+        {/* Selection between Bank and UPI */}
+        <div className="mb-4">
+          <label className="mr-4">
+            <input
+              type="radio"
+              value="bank"
+              checked={method === "bank"}
+              onChange={() => setMethod("bank")}
+              className="mr-2"
+            />
+            Bank Transfer
+          </label>
+          <label>
+            <input
+              type="radio"
+              value="upi"
+              checked={method === "upi"}
+              onChange={() => setMethod("upi")}
+              className="mr-2"
+            />
+            UPI
+          </label>
+        </div>
+
+        {/* Conditionally render fields */}
+        {method === "bank" && (
+          <>
+            <input
+              type="text"
+              placeholder="Account Holder Name"
+              value={accountHolder}
+              onChange={(e) => setAccountHolder(e.target.value)}
+              className="w-full p-2 mb-2 border rounded"
+            />
+            <input
+              type="text"
+              placeholder="Account Number"
+              value={accountNumber}
+              onChange={(e) => setAccountNumber(e.target.value)}
+              className="w-full p-2 mb-2 border rounded"
+            />
+            <input
+              type="text"
+              placeholder="IFSC Code"
+              value={ifsc}
+              onChange={(e) => setIfsc(e.target.value)}
+              className="w-full p-2 mb-2 border rounded"
+            />
+          </>
+        )}
+
+        {method === "upi" && (
+          <input
+            type="text"
+            placeholder="UPI ID"
+            value={upiId}
+            onChange={(e) => setUpiId(e.target.value)}
+            className="w-full p-2 mb-2 border rounded"
+          />
+        )}
+
+        <div className="flex justify-end gap-4 mt-4">
           <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded">
             Cancel
           </button>
