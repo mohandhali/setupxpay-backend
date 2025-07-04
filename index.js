@@ -370,6 +370,27 @@ app.post("/create-payment-order", async (req, res) => {
   }
 });
 
+async function sendUSDTviaTatum(from, to, amount) {
+  try {
+    const response = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
+      to,
+      amount,
+      fromPrivateKey: SENDER_PRIVATE_KEY,
+      tokenAddress: TOKEN_ADDRESS,
+      feeLimit: 1000
+    }, {
+      headers: {
+        "x-api-key": TATUM_API_KEY,
+        "Content-Type": "application/json"
+      }
+    });
+
+    return { txId: response.data.txId };
+  } catch (err) {
+    console.error("❌ sendUSDTviaTatum failed:", err.response?.data || err.message);
+    throw err;
+  }
+}
 
 
 // ===== withdraw usdt =====
