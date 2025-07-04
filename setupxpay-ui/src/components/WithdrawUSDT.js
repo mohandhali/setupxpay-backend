@@ -26,7 +26,7 @@ const WithdrawUSDT = ({ walletAddress, onClose }) => {
       const data = await res.json();
       if (data.success) {
         alert("✅ Withdrawal successful!");
-        onClose();
+        if (typeof onClose === "function") onClose();
       } else {
         alert("❌ Withdrawal failed: " + (data.message || "Unknown error"));
       }

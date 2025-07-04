@@ -45,6 +45,7 @@ const Transaction = mongoose.model("Transaction", new mongoose.Schema({
   wallet: String,
   txId: String,
   rate: Number,
+  type: String,
   fee: String,                                      // ✅ New field
   network: String,                                  // ✅ New field: trc20 / bep20
   createdAt: { type: Date, default: Date.now }

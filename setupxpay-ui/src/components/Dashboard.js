@@ -150,21 +150,21 @@ const Dashboard = () => {
             <table className="w-full text-sm text-left border">
               <thead className="bg-gray-100">
                 <tr>
-                  <th className="p-2 border">Date</th>
-                  <th className="p-2 border">INR</th>
-                  <th className="p-2 border">USDT</th>
-                  <th className="p-2 border">Tx ID</th>
-                  <th className="p-2 border">Type</th>
+                   <th className="p-2 border">Date</th>
+                   <th className="p-2 border">Type</th> {/* 🆕 */}
+                   <th className="p-2 border">INR</th>
+                   <th className="p-2 border">USDT</th>
+                   <th className="p-2 border">Tx ID</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.map((tx) => (
                   <tr key={tx._id} className="hover:bg-gray-50">
                     <td className="p-2 border">{new Date(tx.createdAt).toLocaleString()}</td>
-                    <td className="p-2 border">₹{tx.amountInr}</td>
+                    <td className="p-2 border capitalize">{tx.type || "deposit"}</td> {/* 🆕 */}
+                    <td className="p-2 border">{tx.amountInr ? `₹${tx.amountInr}` : "-"}</td>
                     <td className="p-2 border">{tx.usdtAmount}</td>
-                    <td className="p-2 border text-blue-600 underline">
-                    <td className="p-2 border">{tx.type}</td> 
+                    <td className="p-2 border text-blue-600 underline"> 
                       <a
                         href={`https://tronscan.org/#/transaction/${tx.txId}`}
                         target="_blank"
