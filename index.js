@@ -45,6 +45,7 @@ const Transaction = mongoose.model("Transaction", new mongoose.Schema({
   wallet: String,
   txId: String,
   rate: Number,
+  from: String, // 🆕 sender wallet
   fee: String,                                      // ✅ New field
   network: String,                                  // ✅ New field: trc20 / bep20
   createdAt: { type: Date, default: Date.now }
@@ -209,7 +210,12 @@ app.get("/transactions", async (req, res) => {
   if (!wallet) return res.status(400).json({ error: "Wallet required" });
 
   try {
-    const txs = await Transaction.find({ wallet }).sort({ createdAt: -1 });
+    const txs = await Transaction.find({
+  $or: [
+    { wallet: wallet },  // received
+    { from: wallet }     // sent
+  ]
+}).sort({ createdAt: -1 });
     res.json(txs);
   } catch (err) {
     console.error("❌ Tx fetch error:", err.message);
@@ -415,6 +421,7 @@ app.post("/withdraw", async (req, res) => {
       amountInr: null,
       usdtAmount: amount,
       wallet: to,
+      from: from,
       txId: response.txId,
       rate: null,
       fee: "1",                // ✅ Static for now, update dynamically if needed

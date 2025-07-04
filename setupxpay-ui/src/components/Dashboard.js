@@ -12,8 +12,8 @@ const Dashboard = () => {
   const [showDeposit, setShowDeposit] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const navigate = useNavigate();
   const [showWithdraw, setShowWithdraw] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -40,7 +40,6 @@ const Dashboard = () => {
     }
   }, [user]);
 
-  // ✅ Show success message if redirected from payment
   useEffect(() => {
     const paymentStatus = localStorage.getItem("paymentStatus");
     if (paymentStatus === "success") {
@@ -65,6 +64,7 @@ const Dashboard = () => {
     try {
       const res = await fetch(`https://setupxpay-backend.onrender.com/transactions?wallet=${user.walletAddress}`);
       const data = await res.json();
+      console.log("🚀 Transactions fetched from backend:", data);
       setTransactions(data || []);
     } catch (err) {
       console.error("❌ Error fetching transactions:", err);
@@ -81,11 +81,11 @@ const Dashboard = () => {
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-blue-100 to-blue-300 overflow-auto px-4 py-6">
-    {showSuccess && (
-       <div className="fixed top-6 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-2 rounded-xl shadow-lg z-50 transition-opacity duration-500 ease-in-out opacity-100 animate-fade">
+      {showSuccess && (
+        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-2 rounded-xl shadow-lg z-50">
           ✅ Payment Received Successfully!
-       </div>
-     )}
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
@@ -124,23 +124,23 @@ const Dashboard = () => {
         </p>
       </div>
 
-      {/* Deposit Button */}
-      <div className="text-center mb-8">
+      {/* Action Buttons */}
+      <div className="text-center mb-8 space-x-4">
         <button
           onClick={() => setShowDeposit(true)}
           className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
         >
           Deposit USDT
         </button>
-         <button
-           onClick={() => setShowWithdraw(true)}
-           className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
-  >
+        <button
+          onClick={() => setShowWithdraw(true)}
+          className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
+        >
           Withdraw USDT
         </button>
       </div>
 
-      {/* Transactions */}
+      {/* Transaction History */}
       <div className="bg-white rounded-xl shadow-md p-4 mb-8">
         <h3 className="text-lg font-semibold mb-4 text-gray-800">📜 Transaction History</h3>
         {transactions.length === 0 ? (
@@ -150,65 +150,69 @@ const Dashboard = () => {
             <table className="w-full text-sm text-left border">
               <thead className="bg-gray-100">
                 <tr>
-                   <th className="p-2 border">Date</th>
-                   <th className="p-2 border">Type</th> {/* 🆕 */}
-                   <th className="p-2 border">INR</th>
-                   <th className="p-2 border">USDT</th>
-                   <th className="p-2 border">Tx ID</th>
+                  <th className="p-2 border">Date</th>
+                  <th className="p-2 border">Type</th>
+                  <th className="p-2 border">INR</th>
+                  <th className="p-2 border">USDT</th>
+                  <th className="p-2 border">Tx ID</th>
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx._id} className="hover:bg-gray-50">
-                    <td className="p-2 border">{new Date(tx.createdAt).toLocaleString()}</td>
-                    <td className="p-2 border capitalize">{tx.type || "deposit"}</td> {/* 🆕 */}
-                    <td className="p-2 border">{tx.amountInr ? `₹${tx.amountInr}` : "-"}</td>
-                    <td className="p-2 border">{tx.usdtAmount}</td>
-                    <td className="p-2 border text-blue-600 underline"> 
-                      <a
-                        href={`https://tronscan.org/#/transaction/${tx.txId}`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        View
-                      </a>
-                    </td>
-                  </tr>
-                ))}
+                console.log("🚀 All transactions from backend:", transactions);
+                {transactions.map((tx) => {
+                  console.log("📄 Tx type:", tx.type);
+                  return (
+                    <tr key={tx._id} className={`hover:bg-gray-50 ${tx.type === "withdraw" ? "bg-yellow-100" : ""}`}>
+                      <td className="p-2 border">{new Date(tx.createdAt).toLocaleString()}</td>
+                      <td className="p-2 border capitalize">{tx.type ? tx.type : "deposit"}</td>
+                      <td className="p-2 border">{tx.amountInr ? `₹${tx.amountInr}` : "-"}</td>
+                      <td className="p-2 border">{tx.usdtAmount}</td>
+                      <td className="p-2 border text-blue-600 underline">
+                        <a
+                          href={`https://tronscan.org/#/transaction/${tx.txId}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View
+                        </a>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
       </div>
 
-      {/* Deposit Modal */}
+      {/* Modals */}
       {showDeposit && (
-  <DepositUSDTModal
-    walletAddress={user.walletAddress}
-    onClose={() => {
-      setShowDeposit(false);
-      fetchBalance();
-      fetchTransactions();
-    }}
-    onPaymentSuccess={() => {
-      setShowSuccess(true); // ✅ Animated message
-      fetchBalance();
-      fetchTransactions();
-      setTimeout(() => setShowSuccess(false), 3000);
-    }}
-  />
-)}
-{showWithdraw && (
-  <WithdrawUSDT
-    walletAddress={user.walletAddress}
-    onClose={() => {
-      setShowWithdraw(false);
-      fetchBalance();
-      fetchTransactions();
-    }}
-  />
-)}
+        <DepositUSDTModal
+          walletAddress={user.walletAddress}
+          onClose={() => {
+            setShowDeposit(false);
+            fetchBalance();
+            fetchTransactions();
+          }}
+          onPaymentSuccess={() => {
+            setShowSuccess(true);
+            fetchBalance();
+            fetchTransactions();
+            setTimeout(() => setShowSuccess(false), 3000);
+          }}
+        />
+      )}
 
+      {showWithdraw && (
+        <WithdrawUSDT
+          walletAddress={user.walletAddress}
+          onClose={() => {
+            setShowWithdraw(false);
+            fetchBalance();
+            fetchTransactions();
+          }}
+        />
+      )}
     </div>
   );
 };
