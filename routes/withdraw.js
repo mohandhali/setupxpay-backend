@@ -4,6 +4,7 @@ const Withdraw = require("../models/Withdraw");
 
 router.post("/inr-mock", async (req, res) => {
   try {
+    console.log("BODY:", req.body);
     const { userId, amount, bankDetails } = req.body;
 
     if (!userId || !amount || !bankDetails) {
