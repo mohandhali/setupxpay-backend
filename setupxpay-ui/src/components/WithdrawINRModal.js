@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 const WithdrawINRModal = ({ userId, onClose }) => {
+    console.log("🧾 Passed userId to WithdrawINRModal:", userId);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("upi"); // "upi" or "bank"
   const [accountHolder, setAccountHolder] = useState("");
