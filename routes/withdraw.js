@@ -10,13 +10,23 @@ router.post("/inr-mock", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
+    const { accountHolder, accountNumber, ifsc, upiId } = bankDetails;
+
+    // ✅ At least UPI or full bank details should be provided
+    const isBankValid = accountHolder && accountNumber && ifsc;
+    const isUpiValid = upiId;
+
+    if (!isBankValid && !isUpiValid) {
+      return res.status(400).json({ message: "Please provide either UPI ID or complete bank details." });
+    }
+
     const newWithdraw = new Withdraw({
       userId,
       amount,
       bankDetails,
       status: "mocked_payout_success",
       type: "INR",
-      method: "RazorpayX-mock",
+      method: isUpiValid ? "UPI-mock" : "Bank-mock",
       createdAt: new Date(),
     });
 

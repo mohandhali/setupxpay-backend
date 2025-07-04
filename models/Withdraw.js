@@ -9,10 +9,12 @@ const withdrawSchema = new mongoose.Schema({
     ifsc: String,
     upiId: String,
   },
-  status: String, // mocked_payout_success / pending / failed
-  type: String,   // INR / USDT
-  method: String, // RazorpayX-mock / Tatum
-  createdAt: Date,
+  status: String,
+  type: String,
+  method: String,
+}, {
+  timestamps: true // 👉 Adds createdAt and updatedAt automatically
 });
+
 
 module.exports = mongoose.model("Withdraw", withdrawSchema);
