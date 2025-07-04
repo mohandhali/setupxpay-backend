@@ -365,6 +365,26 @@ app.post("/create-payment-order", async (req, res) => {
     res.status(500).json({ error: "Failed to create Razorpay order" });
   }
 });
+
+// ===== Helper function to send USDT using Tatum (TRC20) =====
+async function sendUSDTviaTatum(from, to, amount) {
+  const response = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
+    to,
+    amount,
+    fromPrivateKey: SENDER_PRIVATE_KEY,
+    tokenAddress: TOKEN_ADDRESS,
+    feeLimit: 1000,
+  }, {
+    headers: {
+      "x-api-key": TATUM_API_KEY,
+      "Content-Type": "application/json"
+    }
+  });
+
+  return response.data; // should include txId
+}
+
+
 // ===== withdraw usdt =====
 app.post("/withdraw", async (req, res) => {
   const { from, to, amount, network } = req.body;
