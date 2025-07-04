@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
 import DepositUSDTModal from "./DepositUSDTModal";
 import { FaUserCircle } from "react-icons/fa";
+import WithdrawINRModal from "./WithdrawINRModal";
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -14,6 +15,7 @@ const Dashboard = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const navigate = useNavigate();
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -64,7 +66,7 @@ const Dashboard = () => {
     try {
       const res = await fetch(`https://setupxpay-backend.onrender.com/transactions?wallet=${user.walletAddress}`);
       const data = await res.json();
-      console.log("🚀 Transactions fetched from backend:", data);
+      
       setTransactions(data || []);
     } catch (err) {
       console.error("❌ Error fetching transactions:", err);
@@ -75,6 +77,7 @@ const Dashboard = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     navigate("/");
+    window.location.href = "/";
   };
 
   if (!user) return null;
@@ -125,20 +128,29 @@ const Dashboard = () => {
       </div>
 
       {/* Action Buttons */}
-      <div className="text-center mb-8 space-x-4">
-        <button
-          onClick={() => setShowDeposit(true)}
-          className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
-        >
-          Deposit USDT
-        </button>
-        <button
-          onClick={() => setShowWithdraw(true)}
-          className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
-        >
-          Withdraw USDT
-        </button>
-      </div>
+      <div className="text-center mb-8 flex flex-wrap gap-4 justify-center">
+  <button
+    onClick={() => setShowDeposit(true)}
+    className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
+  >
+    Deposit USDT
+  </button>
+
+  <button
+    onClick={() => setShowWithdraw(true)}
+    className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
+  >
+    Withdraw USDT
+  </button>
+
+  <button
+    onClick={() => setShowWithdrawModal(true)}
+    className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
+  >
+    Withdraw INR
+  </button>
+</div>
+
 
       {/* Transaction History */}
       <div className="bg-white rounded-xl shadow-md p-4 mb-8">
@@ -158,9 +170,9 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                console.log("🚀 All transactions from backend:", transactions);
+               
                 {transactions.map((tx) => {
-                  console.log("📄 Tx type:", tx.type);
+                  
                   return (
                     <tr key={tx._id} className={`hover:bg-gray-50 ${tx.type === "withdraw" ? "bg-yellow-100" : ""}`}>
                       <td className="p-2 border">{new Date(tx.createdAt).toLocaleString()}</td>
@@ -213,8 +225,19 @@ const Dashboard = () => {
           }}
         />
       )}
+      {showWithdrawModal && (
+  <WithdrawINRModal
+    userId={user._id}
+    onClose={() => {
+      setShowWithdrawModal(false);
+      fetchTransactions(); // optional: in case you log INR payout
+    }}
+  />
+)}
     </div>
   );
 };
+
+
 
 export default Dashboard;

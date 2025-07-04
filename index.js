@@ -12,6 +12,9 @@ const jwt = require("jsonwebtoken");
 const User = require("./models/User");
 const app = express();
 const PORT = 5000;
+const withdrawRoutes = require("./routes/withdraw");
+app.use("/withdraw", withdrawRoutes);
+
 
 // ===== Config =====
 const JWT_SECRET = "setupxpay_secret_key";

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 
 import Signup from "./components/auth/Signup";
 import Login from "./components/auth/Login";
@@ -9,6 +9,7 @@ import PaymentSuccess from "./components/PaymentSuccess"; // ✅ New success scr
 
 function App() {
   const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -27,55 +28,52 @@ function App() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setUser(null);
+    navigate("/"); // ✅ Redirect to Landing Page
   };
 
   return (
-    <Router>
-      <div className="p-4 flex flex-col items-center">
-        <Routes>
+    <div className="p-4 flex flex-col items-center">
+      <Routes>
+        {/* ✅ Landing Page */}
+        <Route
+          path="/"
+          element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />}
+        />
 
-          {/* ✅ Landing Page */}
-          <Route
-            path="/"
-            element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />}
-          />
+        {/* ✅ Signup */}
+        <Route
+          path="/signup"
+          element={<Signup onSuccess={() => (window.location.href = "/login")} />}
+        />
 
-          {/* ✅ Signup */}
-          <Route
-            path="/signup"
-            element={<Signup onSuccess={() => (window.location.href = "/login")} />}
-          />
+        {/* ✅ Login */}
+        <Route
+          path="/login"
+          element={
+            user ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Login onSuccess={handleLoginSuccess} />
+            )
+          }
+        />
 
-          {/* ✅ Login */}
-          <Route
-            path="/login"
-            element={
-              user ? (
-                <Navigate to="/dashboard" replace />
-              ) : (
-                <Login onSuccess={handleLoginSuccess} />
-              )
-            }
-          />
+        {/* ✅ Dashboard (only if logged in) */}
+        <Route
+          path="/dashboard"
+          element={
+            user ? (
+              <Dashboard user={user} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
 
-          {/* ✅ Dashboard (only if logged in) */}
-          <Route
-            path="/dashboard"
-            element={
-              user ? (
-                <Dashboard user={user} onLogout={handleLogout} />
-              ) : (
-                <Navigate to="/login" replace />
-              )
-            }
-          />
-
-          {/* ✅ Razorpay redirect page */}
-          <Route path="/payment-success" element={<PaymentSuccess />} />
-
-        </Routes>
-      </div>
-    </Router>
+        {/* ✅ Razorpay redirect page */}
+        <Route path="/payment-success" element={<PaymentSuccess />} />
+      </Routes>
+    </div>
   );
 }
 
