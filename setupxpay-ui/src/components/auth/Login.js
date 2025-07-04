@@ -20,16 +20,34 @@ const Login = ({ onSuccess }) => {
       });
 
       const data = await res.json();
-      if (res.ok) {
+
+      if (data.success) {
+        // ✅ 1. Store JWT token
         localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        onSuccess(data); // ✅ Now passes full response object
-        navigate("/dashboard"); // Optional: redirect here if not handled outside
+
+        // ✅ 2. Fetch full user data using token
+        const meRes = await fetch("https://setupxpay-backend.onrender.com/auth/me", {
+          headers: {
+            Authorization: `Bearer ${data.token}`,
+          },
+        });
+
+        const meData = await meRes.json();
+
+        if (meData && meData.user) {
+          // ✅ 3. Store complete user object
+          localStorage.setItem("user", JSON.stringify(meData.user));
+
+          // ✅ 4. Navigate to dashboard
+          navigate("/dashboard");
+        } else {
+          setError("Failed to retrieve user info.");
+        }
       } else {
         setError(data.error || "Login failed");
       }
     } catch (err) {
-      setError("Server error. Try again later.");
+      setError("Server error. Please try again later.");
     }
   };
 
