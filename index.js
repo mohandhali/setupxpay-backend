@@ -40,7 +40,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use("/webhook", express.raw({ type: "application/json" }));
-app.use(bodyParser.json());
+app.use(express.json());
 app.use("/withdraw", withdrawRoutes);
 
 // ===== Schemas =====
