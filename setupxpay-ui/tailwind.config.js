@@ -4,15 +4,20 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        inter: ['Inter', 'sans-serif'], // Add Inter font
+        inter: ['Inter', 'sans-serif'], // Inter font
       },
       animation: {
+        fade: "fade 0.5s ease-in-out",
         slideFadeIn: "slideFadeIn 0.6s ease-out",
         fadeInDown: "fadeInDown 0.6s ease-out",
         fadeInSlow: "fadeInSlow 1.2s ease-in",
         bounceIn: "bounceIn 1s both",
       },
       keyframes: {
+        fade: {
+          "0%": { opacity: "0", transform: "translateY(-10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
         slideFadeIn: {
           "0%": { opacity: 0, transform: "translateY(20px)" },
           "100%": { opacity: 1, transform: "translateY(0)" },
@@ -28,18 +33,18 @@ module.exports = {
         bounceIn: {
           "0%": {
             opacity: 0,
-            transform: "scale(0.3)"
+            transform: "scale(0.3)",
           },
           "50%": {
             opacity: 1,
-            transform: "scale(1.05)"
+            transform: "scale(1.05)",
           },
           "70%": {
-            transform: "scale(0.9)"
+            transform: "scale(0.9)",
           },
           "100%": {
-            transform: "scale(1)"
-          }
+            transform: "scale(1)",
+          },
         },
       },
       borderRadius: {

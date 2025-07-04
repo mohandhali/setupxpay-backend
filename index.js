@@ -365,6 +365,28 @@ app.post("/create-payment-order", async (req, res) => {
     res.status(500).json({ error: "Failed to create Razorpay order" });
   }
 });
+// ===== withdraw usdt =====
+app.post("/withdraw", async (req, res) => {
+  const { from, to, amount, network } = req.body;
+
+  if (!from || !to || !amount || !network) {
+    return res.status(400).json({ success: false, error: "Missing fields" });
+  }
+
+  if (network === "bep20") {
+    return res.status(400).json({ success: false, error: "BEP20 not yet supported" });
+  }
+
+  try {
+    // Call Tatum TRC20 API (already set up earlier)
+    const response = await sendUSDTviaTatum(from, to, amount); // your helper function
+    return res.json({ success: true, txId: response.txId });
+  } catch (err) {
+    console.error("❌ Withdraw failed:", err);
+    return res.status(500).json({ success: false, error: "Withdraw error" });
+  }
+});
+
 
 // ===== Start Server =====
 app.listen(PORT, () => {

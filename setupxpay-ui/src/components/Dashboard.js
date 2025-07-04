@@ -1,3 +1,4 @@
+import WithdrawUSDT from "./WithdrawUSDT";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
@@ -10,7 +11,9 @@ const Dashboard = () => {
   const [transactions, setTransactions] = useState([]);
   const [showDeposit, setShowDeposit] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const navigate = useNavigate();
+  const [showWithdraw, setShowWithdraw] = useState(false);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -78,6 +81,12 @@ const Dashboard = () => {
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-blue-100 to-blue-300 overflow-auto px-4 py-6">
+    {showSuccess && (
+       <div className="fixed top-6 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-2 rounded-xl shadow-lg z-50 transition-opacity duration-500 ease-in-out opacity-100 animate-fade">
+          ✅ Payment Received Successfully!
+       </div>
+     )}
+
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-blue-900">Dashboard</h2>
@@ -123,6 +132,12 @@ const Dashboard = () => {
         >
           Deposit USDT
         </button>
+         <button
+           onClick={() => setShowWithdraw(true)}
+           className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
+  >
+          Withdraw USDT
+        </button>
       </div>
 
       {/* Transactions */}
@@ -166,15 +181,32 @@ const Dashboard = () => {
 
       {/* Deposit Modal */}
       {showDeposit && (
-        <DepositUSDTModal
-          walletAddress={user.walletAddress}
-          onClose={() => {
-            setShowDeposit(false);
-            fetchBalance();
-            fetchTransactions();
-          }}
-        />
-      )}
+  <DepositUSDTModal
+    walletAddress={user.walletAddress}
+    onClose={() => {
+      setShowDeposit(false);
+      fetchBalance();
+      fetchTransactions();
+    }}
+    onPaymentSuccess={() => {
+      setShowSuccess(true); // ✅ Animated message
+      fetchBalance();
+      fetchTransactions();
+      setTimeout(() => setShowSuccess(false), 3000);
+    }}
+  />
+)}
+{showWithdraw && (
+  <WithdrawUSDT
+    walletAddress={user.walletAddress}
+    onClose={() => {
+      setShowWithdraw(false);
+      fetchBalance();
+      fetchTransactions();
+    }}
+  />
+)}
+
     </div>
   );
 };

@@ -64,7 +64,7 @@ const DepositUSDTModal = ({ walletAddress, onClose, onPaymentSuccess }) => {
         handler: function (response) {
           console.log("✅ Payment successful:", response);
           // Razorpay will trigger webhook → send USDT
-          localStorage.setItem("payment_success", "1");
+          localStorage.setItem("payment_success", "true");
           onClose(); // close modal
           onPaymentSuccess(); // show dashboard success animation
         },
