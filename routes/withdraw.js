@@ -11,14 +11,20 @@ router.post("/inr-mock", async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    const { accountHolder, accountNumber, ifsc, upiId } = bankDetails;
+    const {
+      accountHolder = "",
+      accountNumber = "",
+      ifsc = "",
+      upiId = "",
+    } = bankDetails;
 
-    // ✅ At least UPI or full bank details should be provided
     const isBankValid = accountHolder && accountNumber && ifsc;
-    const isUpiValid = upiId;
+    const isUpiValid = upiId.trim() !== "";
 
     if (!isBankValid && !isUpiValid) {
-      return res.status(400).json({ message: "Please provide either UPI ID or complete bank details." });
+      return res.status(400).json({
+        message: "Please provide either UPI ID or complete bank details.",
+      });
     }
 
     const newWithdraw = new Withdraw({
@@ -43,5 +49,6 @@ router.post("/inr-mock", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
 
 module.exports = router;
