@@ -64,7 +64,7 @@ const Dashboard = () => {
 
   const fetchTransactions = async () => {
     try {
-      const res = await fetch(`https://setupxpay-backend.onrender.com/transactions?wallet=${user.walletAddress}`);
+      const res = await fetch(`https://setupxpay-backend.onrender.com/transactions?wallet=${user.walletAddress}&userId=${user.id}`);
       const data = await res.json();
       
       setTransactions(data || []);

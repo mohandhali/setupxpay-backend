@@ -212,22 +212,35 @@ app.get("/rate", (req, res) => res.json({ rate: liveRateData.userRate }));
 
 // ===== Transaction History =====
 app.get("/transactions", async (req, res) => {
-  const { wallet } = req.query;
-  if (!wallet) return res.status(400).json({ error: "Wallet required" });
+  const { wallet, userId } = req.query;
+
+  if (!wallet && !userId) {
+    return res.status(400).json({ error: "wallet or userId required" });
+  }
 
   try {
-    const txs = await Transaction.find({
-  $or: [
-    { wallet: wallet },  // received
-    { from: wallet }     // sent
-  ]
-}).sort({ createdAt: -1 });
+    const conditions = [];
+
+    if (wallet) {
+      conditions.push({ wallet });
+      conditions.push({ from: wallet });
+    }
+
+    if (userId) {
+      conditions.push({ from: userId });
+    }
+
+    const query = { $or: conditions };
+
+    const txs = await Transaction.find(query).sort({ createdAt: -1 });
     res.json(txs);
   } catch (err) {
     console.error("❌ Tx fetch error:", err.message);
     res.status(500).json({ error: "Fetch failed" });
   }
 });
+
+
 
 // ===== Razorpay Payment Link Generator =====
 const razorpay = new Razorpay({
