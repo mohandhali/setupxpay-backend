@@ -8,7 +8,7 @@ const crypto = require("crypto");
 const axios = require("axios");
 const Razorpay = require("razorpay");
 const jwt = require("jsonwebtoken");
-
+const authRoutes = require("./routes/auth");
 const User = require("./models/User");
 const app = express();
 const PORT = 5000;
@@ -115,19 +115,31 @@ app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
+    if (!isMatch) return res.status(401).json({ success: false, error: "Invalid credentials" });
 
     const token = jwt.sign({ id: user._id, email }, JWT_SECRET, { expiresIn: "7d" });
-    res.json({ message: "Login successful", token, user: { id: user._id, name: user.name, email, walletAddress: user.walletAddress } });
+
+    res.json({ 
+      success: true,
+      message: "Login successful", 
+      token, 
+      user: {
+        id: user._id,
+        name: user.name,
+        email,
+        walletAddress: user.walletAddress
+      }
+    });
 
   } catch (err) {
     console.error("❌ Login error:", err.message);
-    res.status(500).json({ error: "Login failed" });
+    res.status(500).json({ success: false, error: "Login failed" });
   }
 });
+
 
 // ===== Get Wallet Balance =====
 app.get("/get-balance/:address", async (req, res) => {
