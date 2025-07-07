@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Withdraw = require("../models/Withdraw");
+const Transaction = require("../models/Transaction");
 
 router.post("/inr-mock", async (req, res) => {
   try {
@@ -38,6 +39,18 @@ router.post("/inr-mock", async (req, res) => {
     });
 
     await newWithdraw.save();
+    // ✅ Also log to Transaction table
+    await Transaction.create({
+      type: "withdraw-inr",
+      amountInr: amount,
+      usdtAmount: "-",
+      wallet: isUpiValid ? upiId : accountNumber,
+      txId: "mocked_inr_payout_" + newWithdraw._id.toString(),
+      rate: null,
+      from: userId,
+      fee: "0",
+      network: isUpiValid ? "upi" : "bank",
+    });
 
     res.json({
       success: true,

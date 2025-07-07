@@ -39,7 +39,7 @@ const Login = ({ onSuccess }) => {
           localStorage.setItem("user", JSON.stringify(meData.user));
 
           // ✅ 4. Navigate to dashboard
-          navigate("/dashboard");
+         onSuccess({ token: data.token, user: meData.user });
         } else {
           setError("Failed to retrieve user info.");
         }

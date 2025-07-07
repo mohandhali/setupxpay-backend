@@ -12,7 +12,7 @@ const User = require("./models/User");
 const app = express();
 const PORT = 5000;
 const withdrawRoutes = require("./routes/withdraw");
-
+const Transaction = require("./models/Transaction");
 
 
 // ===== Config =====
@@ -43,19 +43,7 @@ app.use("/auth", authRoutes);
 app.use(express.json());
 app.use("/withdraw", withdrawRoutes);
 
-// ===== Schemas =====
-const Transaction = mongoose.model("Transaction", new mongoose.Schema({
-  type: { type: String, required: true },          // deposit / withdraw
-  amountInr: Number,
-  usdtAmount: String,
-  wallet: String,
-  txId: String,
-  rate: Number,
-  from: String, // 🆕 sender wallet
-  fee: String,                                      // ✅ New field
-  network: String,                                  // ✅ New field: trc20 / bep20
-  createdAt: { type: Date, default: Date.now }
-}));
+
 
 const PendingPayment = mongoose.model("PendingPayment", new mongoose.Schema({
   userId: String,
