@@ -2,7 +2,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const bodyParser = require("body-parser");
 const bcrypt = require("bcryptjs");
 const crypto = require("crypto");
 const axios = require("axios");
@@ -40,6 +39,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use("/webhook", express.raw({ type: "application/json" }));
+app.use("/auth", authRoutes);
 app.use(express.json());
 app.use("/withdraw", withdrawRoutes);
 
