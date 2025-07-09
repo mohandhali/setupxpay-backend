@@ -129,70 +129,91 @@ const Dashboard = () => {
 
       {/* Action Buttons */}
       <div className="text-center mb-8 flex flex-wrap gap-4 justify-center">
-  <button
-    onClick={() => setShowDeposit(true)}
-    className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
-  >
-    Deposit USDT
-  </button>
+        <button
+          onClick={() => setShowDeposit(true)}
+          className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
+        >
+          Deposit USDT
+        </button>
 
-  <button
-    onClick={() => setShowWithdraw(true)}
-    className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
-  >
-    Withdraw USDT
-  </button>
+        <button
+          onClick={() => setShowWithdraw(true)}
+          className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
+        >
+          Withdraw USDT
+        </button>
 
-  <button
-    onClick={() => setShowWithdrawModal(true)}
-    className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
-  >
-    Withdraw INR
-  </button>
-</div>
-
+        <button
+          onClick={() => setShowWithdrawModal(true)}
+          className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
+        >
+          Withdraw INR
+        </button>
+      </div>
 
       {/* Transaction History */}
       <div className="bg-white rounded-xl shadow-md p-4 mb-8">
         <h3 className="text-lg font-semibold mb-4 text-gray-800">📜 Transaction History</h3>
-        {transactions.length === 0 ? (
-          <p className="text-sm text-gray-500">No transactions yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left border">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-2 border">Date</th>
-                  <th className="p-2 border">Type</th>
-                  <th className="p-2 border">INR</th>
-                  <th className="p-2 border">USDT</th>
-                  <th className="p-2 border">Tx ID</th>
-                </tr>
-              </thead>
-              <tbody>
-               
-                {transactions.map((tx) => {
-                  
-                  return (
-                    <tr key={tx._id} className={`hover:bg-gray-50 ${tx.type === "withdraw" ? "bg-yellow-100" : ""}`}>
-                      <td className="p-2 border">{new Date(tx.createdAt).toLocaleString()}</td>
-                      <td className="p-2 border capitalize">{tx.type ? tx.type : "deposit"}</td>
-                      <td className="p-2 border">{tx.amountInr ? `₹${tx.amountInr}` : "-"}</td>
-                      <td className="p-2 border">{tx.usdtAmount}</td>
+        {transactions.length > 0 && (
+          <div className="mt-6">
+            <h2 className="text-lg font-semibold mb-2">Transaction History</h2>
+            <div className="overflow-x-auto rounded-xl border border-gray-300">
+              <table className="min-w-full text-sm text-left">
+                <thead className="bg-gray-100">
+                  <tr>
+                    <th className="p-2 border">Date</th>
+                    <th className="p-2 border">Type</th>
+                    <th className="p-2 border">Amount (INR)</th>
+                    <th className="p-2 border">USDT</th>
+                    <th className="p-2 border">Tx Link</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => (
+                    <tr
+                      key={tx._id}
+                      className={`hover:bg-gray-50 ${
+                        tx.type === "withdraw" || tx.type === "withdraw-inr"
+                          ? "bg-yellow-100"
+                          : ""
+                      }`}
+                    >
+                      <td className="p-2 border">
+                        {new Date(tx.createdAt).toLocaleString()}
+                      </td>
+                      <td className="p-2 border capitalize">
+                        {tx.type === "withdraw-inr"
+                          ? "Withdraw (INR)"
+                          : tx.type === "withdraw"
+                          ? "Withdraw (USDT)"
+                          : "Deposit"}
+                      </td>
+                      <td className="p-2 border">
+                        {tx.amountInr ? `₹${tx.amountInr}` : "-"}
+                      </td>
+                      <td className="p-2 border">
+                        {tx.usdtAmount && tx.usdtAmount !== "-"
+                          ? tx.usdtAmount
+                          : "-"}
+                      </td>
                       <td className="p-2 border text-blue-600 underline">
-                        <a
-                          href={`https://tronscan.org/#/transaction/${tx.txId}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          View
-                        </a>
+                        {tx.type === "withdraw-inr" || !tx.txId ? (
+                          "N/A"
+                        ) : (
+                          <a
+                            href={`https://tronscan.org/#/transaction/${tx.txId}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            View
+                          </a>
+                        )}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>
@@ -225,19 +246,18 @@ const Dashboard = () => {
           }}
         />
       )}
+
       {showWithdrawModal && (
-  <WithdrawINRModal
-    userId={user._id}
-    onClose={() => {
-      setShowWithdrawModal(false);
-      fetchTransactions(); // optional: in case you log INR payout
-    }}
-  />
-)}
+        <WithdrawINRModal
+          userId={user._id}
+          onClose={() => {
+            setShowWithdrawModal(false);
+            fetchTransactions();
+          }}
+        />
+      )}
     </div>
   );
 };
-
-
 
 export default Dashboard;

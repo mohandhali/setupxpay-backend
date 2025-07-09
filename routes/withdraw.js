@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Withdraw = require("../models/Withdraw");
 const Transaction = require("../models/Transaction");
+const User = require("../models/User"); // ✅ Add this
 
 router.post("/inr-mock", async (req, res) => {
   try {
@@ -28,6 +29,12 @@ router.post("/inr-mock", async (req, res) => {
       });
     }
 
+    // ✅ Fetch wallet address from User
+    const user = await User.findById(userId);
+    if (!user || !user.walletAddress) {
+      return res.status(404).json({ message: "User or wallet not found" });
+    }
+
     const newWithdraw = new Withdraw({
       userId,
       amount,
@@ -39,17 +46,19 @@ router.post("/inr-mock", async (req, res) => {
     });
 
     await newWithdraw.save();
-    // ✅ Also log to Transaction table
+
+    // ✅ Save correct wallet address to transaction
     await Transaction.create({
       type: "withdraw-inr",
       amountInr: amount,
       usdtAmount: "-",
-      wallet: isUpiValid ? upiId : accountNumber,
+      wallet: user.walletAddress, // ✅ Correct wallet saved here
       txId: "mocked_inr_payout_" + newWithdraw._id.toString(),
       rate: null,
       from: userId,
       fee: "0",
       network: isUpiValid ? "upi" : "bank",
+      bankDetails,
     });
 
     res.json({
@@ -62,6 +71,5 @@ router.post("/inr-mock", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
 
 module.exports = router;
