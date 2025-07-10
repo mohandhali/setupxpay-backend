@@ -1,21 +1,28 @@
-import WithdrawUSDT from "./WithdrawUSDT";
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
 import DepositUSDTModal from "./DepositUSDTModal";
-import { FaUserCircle } from "react-icons/fa";
+import WithdrawUSDT from "./WithdrawUSDT";
 import WithdrawINRModal from "./WithdrawINRModal";
+import {
+  FaBars, FaUser, FaCog, FaWallet, FaFileAlt, FaSignOutAlt,
+  FaCopy, FaQrcode, FaUsers, FaExchangeAlt
+} from "react-icons/fa";
+import { MdClose } from "react-icons/md";
+import setupxpayLogo from "../assets/logo.png";
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
   const [balance, setBalance] = useState("0");
-  const [transactions, setTransactions] = useState([]);
+  const [buyRate, setBuyRate] = useState("-");
+  const [sellRate, setSellRate] = useState("-");
+  const [showSidebar, setShowSidebar] = useState(false);
   const [showDeposit, setShowDeposit] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
-  const navigate = useNavigate();
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -38,19 +45,9 @@ const Dashboard = () => {
   useEffect(() => {
     if (user?.walletAddress) {
       fetchBalance();
-      fetchTransactions();
+      fetchRates();
     }
   }, [user]);
-
-  useEffect(() => {
-    const paymentStatus = localStorage.getItem("paymentStatus");
-    if (paymentStatus === "success") {
-      localStorage.removeItem("paymentStatus");
-      setTimeout(() => {
-        alert("✅ Payment received successfully!");
-      }, 500);
-    }
-  }, []);
 
   const fetchBalance = async () => {
     try {
@@ -62,14 +59,14 @@ const Dashboard = () => {
     }
   };
 
-  const fetchTransactions = async () => {
+  const fetchRates = async () => {
     try {
-      const res = await fetch(`https://setupxpay-backend.onrender.com/transactions?wallet=${user.walletAddress}&userId=${user.id}`);
+      const res = await fetch("https://setupxpay-backend.onrender.com/rate");
       const data = await res.json();
-      
-      setTransactions(data || []);
+      setBuyRate(data?.buy || "-");
+      setSellRate(data?.sell || "-");
     } catch (err) {
-      console.error("❌ Error fetching transactions:", err);
+      console.error("❌ Error fetching rates:", err);
     }
   };
 
@@ -77,145 +74,113 @@ const Dashboard = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     navigate("/");
-    window.location.href = "/";
   };
 
   if (!user) return null;
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-blue-100 to-blue-300 overflow-auto px-4 py-6">
-      {showSuccess && (
-        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-2 rounded-xl shadow-lg z-50">
-          ✅ Payment Received Successfully!
-        </div>
-      )}
-
+    <div className="min-h-screen w-full bg-white">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-blue-900">Dashboard</h2>
-        <div className="relative">
-          <FaUserCircle
-            className="text-3xl text-blue-700 cursor-pointer"
-            onClick={() => setShowDropdown(!showDropdown)}
-          />
-          {showDropdown && (
-            <div className="absolute right-0 mt-2 w-44 bg-white border rounded-lg shadow-md z-10">
-              <div className="px-4 py-2 text-sm text-gray-700 border-b">{user.email}</div>
-              <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-              >
-                Logout
-              </button>
-            </div>
-          )}
+      <div className="w-full flex items-center justify-between px-4 py-3 bg-white shadow-md sticky top-0 z-50">
+        <div className="flex items-center gap-3">
+          <FaBars className="text-2xl text-gray-800 cursor-pointer" onClick={() => setShowSidebar(true)} />
+          <img src={setupxpayLogo} alt="logo" className="h-8 w-8" />
+          <span className="text-lg font-bold text-gray-900 tracking-wide">SetupXPay</span>
         </div>
       </div>
 
-      {/* Wallet Info */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-6 text-center">
-        <p className="text-lg font-semibold text-gray-700 mb-1">Wallet Address</p>
-        <p className="text-xs text-blue-800 break-all mb-4">{user.walletAddress}</p>
-        <div className="flex justify-center mb-4">
-          <div className="bg-white p-2 rounded-lg shadow">
-            <QRCode value={user.walletAddress} size={120} bgColor="#ffffff" fgColor="#000000" />
+      {/* Sidebar */}
+      <div className={`fixed top-0 left-0 h-full w-64 bg-white shadow-lg z-50 transform transition-transform duration-300 ease-in-out ${showSidebar ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex justify-between items-center px-4 py-3 border-b">
+          <div className="flex items-center gap-2">
+            <img src={setupxpayLogo} alt="logo" className="h-6 w-6" />
+            <span className="text-base font-semibold text-gray-800">SetupXPay</span>
           </div>
+          <MdClose className="text-xl cursor-pointer" onClick={() => setShowSidebar(false)} />
         </div>
-        <p className="text-md text-gray-600 font-medium">
-          💰 USDT Balance:{" "}
-          <span className="text-green-700 font-semibold">{balance}</span>
-        </p>
+
+        <div className="px-4 py-4 flex flex-col gap-4">
+          <button className="flex items-center gap-3 text-gray-800 hover:text-blue-700"><FaUser /> Profile</button>
+          <button className="flex items-center gap-3 text-gray-800 hover:text-blue-700"><FaFileAlt /> KYC</button>
+          <button className="flex items-center gap-3 text-gray-800 hover:text-blue-700"><FaWallet /> Bank Details</button>
+          <button className="flex items-center gap-3 text-gray-800 hover:text-blue-700"><FaCog /> Settings</button>
+          <button className="flex items-center gap-3 text-red-600 hover:text-red-800" onClick={handleLogout}><FaSignOutAlt /> Logout</button>
+        </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="text-center mb-8 flex flex-wrap gap-4 justify-center">
+      {/* Wallet Info - Upgraded Design */}
+      <div className="max-w-md mx-auto px-4 mt-6 animate-fadeIn">
+  {/* Main White Box with Rounded Corners */}
+  <div className="bg-white shadow-soft border border-gray-200 rounded-2xl overflow-hidden">
+
+    {/* USDT Balance Section */}
+    <div className="text-center px-6 py-5">
+      <p className="text-sm text-gray-500">USDT Balance</p>
+      <h2 className="text-4xl font-bold text-gray-900 tracking-wide">{balance}</h2>
+      <p className="text-xs text-gray-500 mt-1">
+        Wallet: {user.walletAddress.slice(0, 6)}...{user.walletAddress.slice(-4)}
+      </p>
+    </div>
+
+    {/* Buy/Sell Strip */}
+    <div className="bg-blue-800 text-white px-6 py-2 flex justify-between items-center text-sm font-semibold">
+      <span>Buy ₹{buyRate}</span>
+      <span>Sell ₹{sellRate}</span>
+    </div>
+
+    {/* Thin Blue Line Below Buy/Sell Bar */}
+    <div className="h-1 bg-blue-700 w-full" />
+
+  </div>
+</div>
+
+      {/* Button Section */}
+      <div className="grid grid-cols-3 gap-3 mb-4 mt-6 px-4">
         <button
           onClick={() => setShowDeposit(true)}
-          className="bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
+          className="bg-gray-100 border text-gray-800 rounded-xl py-3 flex flex-col items-center hover:bg-gray-200"
         >
-          Deposit USDT
+          <FaWallet className="text-2xl mb-1" />
+          Wallet
         </button>
-
         <button
-          onClick={() => setShowWithdraw(true)}
-          className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
+          onClick={() => alert("Show transactions modal")}
+          className="bg-gray-100 border text-gray-800 rounded-xl py-3 flex flex-col items-center hover:bg-gray-200"
         >
-          Withdraw USDT
+          <FaExchangeAlt className="text-2xl mb-1" />
+          Transactions
         </button>
-
         <button
-          onClick={() => setShowWithdrawModal(true)}
-          className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-6 py-2 rounded-lg shadow-md hover:scale-105 transition"
+          onClick={() => alert("Community help page")}
+          className="bg-gray-100 border text-gray-800 rounded-xl py-3 flex flex-col items-center hover:bg-gray-200"
         >
-          Withdraw INR
+          <FaUsers className="text-2xl mb-1" />
+          Community
         </button>
       </div>
 
-      {/* Transaction History */}
-      <div className="bg-white rounded-xl shadow-md p-4 mb-8">
-        <h3 className="text-lg font-semibold mb-4 text-gray-800">📜 Transaction History</h3>
-        {transactions.length > 0 && (
-          <div className="mt-6">
-            <h2 className="text-lg font-semibold mb-2">Transaction History</h2>
-            <div className="overflow-x-auto rounded-xl border border-gray-300">
-              <table className="min-w-full text-sm text-left">
-                <thead className="bg-gray-100">
-                  <tr>
-                    <th className="p-2 border">Date</th>
-                    <th className="p-2 border">Type</th>
-                    <th className="p-2 border">Amount (INR)</th>
-                    <th className="p-2 border">USDT</th>
-                    <th className="p-2 border">Tx Link</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map((tx) => (
-                    <tr
-                      key={tx._id}
-                      className={`hover:bg-gray-50 ${
-                        tx.type === "withdraw" || tx.type === "withdraw-inr"
-                          ? "bg-yellow-100"
-                          : ""
-                      }`}
-                    >
-                      <td className="p-2 border">
-                        {new Date(tx.createdAt).toLocaleString()}
-                      </td>
-                      <td className="p-2 border capitalize">
-                        {tx.type === "withdraw-inr"
-                          ? "Withdraw (INR)"
-                          : tx.type === "withdraw"
-                          ? "Withdraw (USDT)"
-                          : "Deposit"}
-                      </td>
-                      <td className="p-2 border">
-                        {tx.amountInr ? `₹${tx.amountInr}` : "-"}
-                      </td>
-                      <td className="p-2 border">
-                        {tx.usdtAmount && tx.usdtAmount !== "-"
-                          ? tx.usdtAmount
-                          : "-"}
-                      </td>
-                      <td className="p-2 border text-blue-600 underline">
-                        {tx.type === "withdraw-inr" || !tx.txId ? (
-                          "N/A"
-                        ) : (
-                          <a
-                            href={`https://tronscan.org/#/transaction/${tx.txId}`}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            View
-                          </a>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
+      {/* Refer Section */}
+      <div className="bg-white border rounded-xl p-4 text-center mb-20 shadow-sm mx-4">
+        <p className="text-base font-semibold">🎁 Refer & Earn</p>
+        <p className="text-xs text-gray-600">Invite friends and earn rewards on every transaction they make!</p>
+      </div>
+
+      {/* Footer Actions */}
+      <div className="fixed bottom-0 left-0 w-full px-4 py-3 bg-white border-t shadow-md grid grid-cols-3 gap-3">
+        <button
+          onClick={() => setShowDeposit(true)}
+          className="bg-blue-700 text-white py-2 rounded-xl"
+        >Buy USDT</button>
+        <button
+          onClick={() => alert("Open scanner for QR payment")}
+          className="bg-gray-700 text-white py-2 rounded-xl"
+        >
+          <FaQrcode className="inline" />
+        </button>
+        <button
+          onClick={() => setShowWithdrawModal(true)}
+          className="bg-blue-700 text-white py-2 rounded-xl"
+        >Sell USDT</button>
       </div>
 
       {/* Modals */}
@@ -225,12 +190,10 @@ const Dashboard = () => {
           onClose={() => {
             setShowDeposit(false);
             fetchBalance();
-            fetchTransactions();
           }}
           onPaymentSuccess={() => {
             setShowSuccess(true);
             fetchBalance();
-            fetchTransactions();
             setTimeout(() => setShowSuccess(false), 3000);
           }}
         />
@@ -242,7 +205,6 @@ const Dashboard = () => {
           onClose={() => {
             setShowWithdraw(false);
             fetchBalance();
-            fetchTransactions();
           }}
         />
       )}
@@ -252,9 +214,14 @@ const Dashboard = () => {
           userId={user._id}
           onClose={() => {
             setShowWithdrawModal(false);
-            fetchTransactions();
           }}
         />
+      )}
+
+      {showSuccess && (
+        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-2 rounded-xl shadow-lg z-50">
+          ✅ Payment Received Successfully!
+        </div>
       )}
     </div>
   );

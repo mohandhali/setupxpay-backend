@@ -37,7 +37,8 @@ function App() {
   };
 
   return (
-    <div className="p-4 flex flex-col items-center">
+    <div className="min-h-screen w-full bg-white">
+      <div className="max-w-md mx-auto px-4"></div>
       <Routes>
         {/* ✅ Landing Page */}
         <Route

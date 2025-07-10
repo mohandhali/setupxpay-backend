@@ -208,7 +208,15 @@ async function fetchBinanceRate() {
 setInterval(fetchBinanceRate, 15000);
 fetchBinanceRate();
 
-app.get("/rate", (req, res) => res.json({ rate: liveRateData.userRate }));
+// ✅ Updated /rate route to return both buy and sell prices
+app.get("/rate", (req, res) => {
+  const { binanceRate, markup, updatedAt } = liveRateData;
+
+  const buy = parseFloat((binanceRate + markup).toFixed(2));  // Buyer pays more
+  const sell = parseFloat((binanceRate - markup).toFixed(2)); // Seller receives less
+
+  res.json({ buy, sell, updatedAt });
+});
 
 // ===== Transaction History =====
 app.get("/transactions", async (req, res) => {
