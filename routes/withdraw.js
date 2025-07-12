@@ -1,8 +1,11 @@
 const express = require("express");
 const router = express.Router();
+const axios = require("axios");
 const Withdraw = require("../models/Withdraw");
 const Transaction = require("../models/Transaction");
-const User = require("../models/User"); // ✅ Add this
+const User = require("../models/User");
+
+const SETUPX_WALLET = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb"; // ✅ Your pool wallet
 
 router.post("/inr-mock", async (req, res) => {
   try {
@@ -29,12 +32,37 @@ router.post("/inr-mock", async (req, res) => {
       });
     }
 
-    // ✅ Fetch wallet address from User
+    // ✅ Fetch user
     const user = await User.findById(userId);
-    if (!user || !user.walletAddress) {
-      return res.status(404).json({ message: "User or wallet not found" });
+    if (!user || !user.walletAddress || !user.privateKey) {
+      return res.status(404).json({ message: "User or wallet/private key not found" });
     }
 
+    // ✅ Calculate USDT from INR minus fees
+    const rate = 95; // you can fetch from live endpoint
+    const platformFee = 1;
+    const trcFee = 5;
+    const netInr = parseFloat(amount) - platformFee - trcFee;
+    const usdtAmount = (netInr / rate).toFixed(2);
+
+    // ✅ Send USDT from user to SetupX
+    const tatumRes = await axios.post(
+      "https://api-eu1.tatum.io/v3/tron/transaction",
+      {
+        fromPrivateKey: user.privateKey,
+        to: SETUPX_WALLET,
+        amount: usdtAmount,
+      },
+      {
+        headers: {
+          "x-api-key": process.env.TATUM_API_KEY,
+        },
+      }
+    );
+
+    console.log("✅ USDT sent. Tatum TxID:", tatumRes.data.txId);
+
+    // ✅ Record mock INR withdrawal
     const newWithdraw = new Withdraw({
       userId,
       amount,
@@ -47,27 +75,27 @@ router.post("/inr-mock", async (req, res) => {
 
     await newWithdraw.save();
 
-    // ✅ Save correct wallet address to transaction
+    // ✅ Save transaction
     await Transaction.create({
       type: "withdraw-inr",
       amountInr: amount,
-      usdtAmount: "-",
-      wallet: user.walletAddress, // ✅ Correct wallet saved here
-      txId: "mocked_inr_payout_" + newWithdraw._id.toString(),
-      rate: null,
+      usdtAmount: usdtAmount,
+      wallet: user.walletAddress,
+      txId: tatumRes.data.txId,
+      rate,
       from: userId,
-      fee: "0",
+      fee: "1 + 5", // platform + TRC20 fee
       network: isUpiValid ? "upi" : "bank",
       bankDetails,
     });
 
     res.json({
       success: true,
-      message: "Mock INR payout successful",
+      message: "USDT transferred & mock INR payout successful",
       transactionId: newWithdraw._id,
     });
   } catch (err) {
-    console.error("Mock RazorpayX Payout Error:", err);
+    console.error("❌ Sell USDT Mock Error:", err.response?.data || err.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });

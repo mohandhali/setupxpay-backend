@@ -1,4 +1,5 @@
-// ===== Imports & Setup =====
+require("dotenv").config(); // 🔐 Load env variables first
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -7,23 +8,27 @@ const crypto = require("crypto");
 const axios = require("axios");
 const Razorpay = require("razorpay");
 const jwt = require("jsonwebtoken");
+
 const authRoutes = require("./routes/auth");
-const User = require("./models/User");
-const app = express();
-const PORT = 5000;
 const withdrawRoutes = require("./routes/withdraw");
+const User = require("./models/User");
 const Transaction = require("./models/Transaction");
 
+const app = express();
 
-// ===== Config =====
-const JWT_SECRET = "setupxpay_secret_key";
-const TATUM_API_KEY = "t-684c3a005ad68338f85afe22-1792ec2110654df39d604f3b";
-const SENDER_PRIVATE_KEY = "ddc4d27b4b6eaf4c74088ac546b18e35674fa997c6e9d77d209f5fafa54b79ad";
-const TOKEN_ADDRESS = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
-const RAZORPAY_WEBHOOK_SECRET = "setupx_secret_key";
+// ===== Load from .env =====
+const PORT = process.env.PORT || 5000;
+const MONGODB_URI = process.env.MONGODB_URI;
+const TATUM_API_KEY = process.env.TATUM_API_KEY;
+const SENDER_PRIVATE_KEY = process.env.PRIVATE_KEY;
+const TOKEN_ADDRESS = process.env.CONTRACT_ADDRESS;
+const JWT_SECRET = process.env.JWT_SECRET;
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+const RAZORPAY_WEBHOOK_SECRET = process.env.RAZORPAY_WEBHOOK_SECRET;
 
-// ===== MongoDB Connection =====
-mongoose.connect("mongodb+srv://setupxadmin:WavMOQBBj3I2IcW9@cluster0.em2tu28.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+// ===== MongoDB Connect =====
+mongoose.connect(MONGODB_URI)
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB Error:", err));
 
@@ -34,13 +39,11 @@ app.use(cors({
     "https://setupxpay.com",
     "https://www.setupxpay.com"
   ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
 app.use("/webhook", express.raw({ type: "application/json" }));
-app.use("/auth", authRoutes);
 app.use(express.json());
+app.use("/auth", authRoutes);
 app.use("/withdraw", withdrawRoutes);
 
 

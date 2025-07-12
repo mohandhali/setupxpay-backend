@@ -1,15 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
-import DepositUSDTModal from "./DepositUSDTModal";
-import WithdrawUSDT from "./WithdrawUSDT";
+import BuyUSDTModal from "./BuyUSDTModal";
+import WalletModal from "./WalletModal";
 import WithdrawINRModal from "./WithdrawINRModal";
 import {
   FaBars, FaUser, FaCog, FaWallet, FaFileAlt, FaSignOutAlt,
-  FaCopy, FaQrcode, FaUsers, FaExchangeAlt
+  FaCopy, FaQrcode, FaUsers, FaExchangeAlt, FaTelegramPlane, FaWhatsapp
 } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 import setupxpayLogo from "../assets/logo.png";
+import TransactionHistory from "./TransactionHistory";
+import SellUSDTQRModal from "./SellUSDTQRModal";
+
+
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -17,12 +21,14 @@ const Dashboard = () => {
   const [buyRate, setBuyRate] = useState("-");
   const [sellRate, setSellRate] = useState("-");
   const [showSidebar, setShowSidebar] = useState(false);
-  const [showDeposit, setShowDeposit] = useState(false);
-  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [showBuyUSDT, setShowBuyUSDT] = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showSellQR, setShowSellQR] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [showTransactionHistory, setShowTransactionHistory] = useState(false);
   const navigate = useNavigate();
+  
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -46,8 +52,15 @@ const Dashboard = () => {
     if (user?.walletAddress) {
       fetchBalance();
       fetchRates();
-    }
-  }, [user]);
+
+     // 🔄 Auto-refresh rates every 10 seconds
+    const interval = setInterval(() => {
+      fetchRates();
+    }, 10000);
+
+    return () => clearInterval(interval); // Cleanup on unmount
+  }
+}, [user]);
 
   const fetchBalance = async () => {
     try {
@@ -124,9 +137,9 @@ const Dashboard = () => {
 
     {/* Buy/Sell Strip */}
     <div className="bg-blue-800 text-white px-6 py-2 flex justify-between items-center text-sm font-semibold">
-      <span>Buy ₹{buyRate}</span>
-      <span>Sell ₹{sellRate}</span>
-    </div>
+  <span>Buy ₹{buyRate}</span>
+  <span>Sell ₹{sellRate}</span>
+</div>
 
     {/* Thin Blue Line Below Buy/Sell Bar */}
     <div className="h-1 bg-blue-700 w-full" />
@@ -137,21 +150,23 @@ const Dashboard = () => {
       {/* Button Section */}
       <div className="grid grid-cols-3 gap-3 mb-4 mt-6 px-4">
         <button
-          onClick={() => setShowDeposit(true)}
+          onClick={() => setShowWalletModal(true)}
           className="bg-gray-100 border text-gray-800 rounded-xl py-3 flex flex-col items-center hover:bg-gray-200"
         >
           <FaWallet className="text-2xl mb-1" />
           Wallet
         </button>
+
         <button
-          onClick={() => alert("Show transactions modal")}
-          className="bg-gray-100 border text-gray-800 rounded-xl py-3 flex flex-col items-center hover:bg-gray-200"
-        >
-          <FaExchangeAlt className="text-2xl mb-1" />
-          Transactions
-        </button>
+  onClick={() => setShowTransactionHistory(true)}
+  className="bg-gray-100 border text-gray-800 rounded-xl py-3 flex flex-col items-center hover:bg-gray-200"
+>
+  <FaExchangeAlt className="text-2xl mb-1" />
+  Transactions
+</button>
+
         <button
-          onClick={() => alert("Community help page")}
+          onClick={() => navigate("/community")}
           className="bg-gray-100 border text-gray-800 rounded-xl py-3 flex flex-col items-center hover:bg-gray-200"
         >
           <FaUsers className="text-2xl mb-1" />
@@ -159,24 +174,69 @@ const Dashboard = () => {
         </button>
       </div>
 
-      {/* Refer Section */}
-      <div className="bg-white border rounded-xl p-4 text-center mb-20 shadow-sm mx-4">
-        <p className="text-base font-semibold">🎁 Refer & Earn</p>
-        <p className="text-xs text-gray-600">Invite friends and earn rewards on every transaction they make!</p>
-      </div>
+      {/* Refer Section - Upgraded */}
+<div className="bg-white border rounded-2xl shadow-md p-5 mx-4 mb-24 space-y-4">
+  <h2 className="text-lg font-bold text-blue-700 text-center">🎁 Refer & Earn</h2>
+  <p className="text-sm text-gray-600 text-center">
+    Invite friends and earn rewards when they buy or sell USDT.
+  </p>
+
+  {/* Referral Link Box */}
+  <div className="bg-gray-100 px-3 py-2 rounded-xl flex items-center justify-between text-sm">
+    <span className="truncate font-mono">
+      https://setupxpay.com/signup?ref={user._id?.slice(-6) || "abc123"}
+    </span>
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(`https://setupxpay.com/signup?ref=${user._id?.slice(-6) || "abc123"}`);
+        alert("Referral link copied!");
+      }}
+      className="ml-2 px-2 py-1 text-xs bg-blue-600 text-white rounded"
+    >
+      <FaCopy className="inline mr-1" /> Copy
+    </button>
+  </div>
+
+  {/* Share Buttons */}
+  <div className="flex justify-center gap-3 pt-2">
+    <a
+      href={`https://wa.me/?text=Join%20SetupXPay%20and%20earn%20rewards!%20Use%20this%20link:%20https://setupxpay.com/signup?ref=${user._id?.slice(-6) || "abc123"}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 px-4 py-1 text-sm rounded-lg border text-green-600 border-green-600 hover:bg-green-50"
+    >
+      <FaWhatsapp />
+      WhatsApp
+    </a>
+    <a
+      href={`https://t.me/share/url?url=https://setupxpay.com/signup?ref=${user._id?.slice(-6) || "abc123"}&text=Join%20SetupXPay%20and%20earn%20USDT%20rewards!`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-2 px-4 py-1 text-sm rounded-lg border text-blue-600 border-blue-600 hover:bg-blue-50"
+    >
+      <FaTelegramPlane />
+      Telegram
+    </a>
+  </div>
+</div>
+
 
       {/* Footer Actions */}
       <div className="fixed bottom-0 left-0 w-full px-4 py-3 bg-white border-t shadow-md grid grid-cols-3 gap-3">
         <button
-          onClick={() => setShowDeposit(true)}
-          className="bg-blue-700 text-white py-2 rounded-xl"
-        >Buy USDT</button>
+  onClick={() => setShowBuyUSDT(true)}
+  className="bg-blue-700 text-white py-2 rounded-xl"
+>
+  Buy USDT
+</button>
+
         <button
-          onClick={() => alert("Open scanner for QR payment")}
-          className="bg-gray-700 text-white py-2 rounded-xl"
-        >
-          <FaQrcode className="inline" />
-        </button>
+  onClick={() => setShowSellQR(true)}
+  className="bg-gray-700 text-white py-2 rounded-xl"
+>
+  <FaQrcode className="inline" />
+</button>
+
         <button
           onClick={() => setShowWithdrawModal(true)}
           className="bg-blue-700 text-white py-2 rounded-xl"
@@ -184,30 +244,35 @@ const Dashboard = () => {
       </div>
 
       {/* Modals */}
-      {showDeposit && (
-        <DepositUSDTModal
-          walletAddress={user.walletAddress}
-          onClose={() => {
-            setShowDeposit(false);
-            fetchBalance();
-          }}
-          onPaymentSuccess={() => {
-            setShowSuccess(true);
-            fetchBalance();
-            setTimeout(() => setShowSuccess(false), 3000);
-          }}
-        />
-      )}
+      {showBuyUSDT && (
+  <BuyUSDTModal
+    walletAddress={user.walletAddress}
+    onClose={() => setShowBuyUSDT(false)}
+    onPaymentSuccess={() => {
+      fetchBalance();
+    }}
+  />
+)}
 
-      {showWithdraw && (
-        <WithdrawUSDT
-          walletAddress={user.walletAddress}
-          onClose={() => {
-            setShowWithdraw(false);
-            fetchBalance();
-          }}
-        />
-      )}
+
+      {showWalletModal && (
+        <WalletModal
+         walletAddress={user.walletAddress}
+         onClose={() => setShowWalletModal(false)}
+         openBuyModal={() => {
+          setShowWalletModal(false);
+          setTimeout(() => setShowBuyUSDT(true), 300); // smooth open
+        }}
+      />
+     )}
+
+     {showSellQR && (
+  <SellUSDTQRModal
+    userId={user._id}
+    onClose={() => {setShowSellQR(false);
+         }}
+  />
+)}
 
       {showWithdrawModal && (
         <WithdrawINRModal
@@ -217,12 +282,13 @@ const Dashboard = () => {
           }}
         />
       )}
+      {showTransactionHistory && (
+  <TransactionHistory
+    walletAddress={user.walletAddress}
+    onClose={() => setShowTransactionHistory(false)}
+  />
+)}
 
-      {showSuccess && (
-        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-2 rounded-xl shadow-lg z-50">
-          ✅ Payment Received Successfully!
-        </div>
-      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-
+import Community from "./components/Community";
 import Signup from "./components/auth/Signup";
 import Login from "./components/auth/Login";
 import Dashboard from "./components/Dashboard";
@@ -78,6 +78,7 @@ function App() {
 
         {/* ✅ Razorpay redirect page */}
         <Route path="/payment-success" element={<PaymentSuccess />} />
+        <Route path="/community" element={<Community />} />
       </Routes>
     </div>
   );
