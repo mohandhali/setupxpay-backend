@@ -64,32 +64,52 @@ app.post("/signup", async (req, res) => {
       return res.status(409).json({ error: "User already exists" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
     const walletRes = await axios.get("https://api.tatum.io/v3/tron/wallet", {
       headers: { "x-api-key": TATUM_API_KEY },
     });
 
     const { mnemonic, xpub } = walletRes.data;
+
     const addressRes = await axios.get(`https://api.tatum.io/v3/tron/address/${xpub}/0`, {
       headers: { "x-api-key": TATUM_API_KEY },
     });
 
     const address = addressRes.data.address;
 
-    const user = new User({ name, email, password: hashedPassword, walletAddress: address, xpub });
+    // ✅ Get Private Key from Mnemonic
+    const privateKeyRes = await axios.post(
+      "https://api.tatum.io/v3/tron/wallet/priv",
+      { index: 0, mnemonic },
+      { headers: { "x-api-key": TATUM_API_KEY } }
+    );
+    const privateKey = privateKeyRes.data.key;
+
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      walletAddress: address,
+      xpub,
+    });
+
     await user.save();
 
-    await axios.post("https://api.tatum.io/v3/tron/transaction", {
-      to: address,
-      amount: "1",
-      fromPrivateKey: SENDER_PRIVATE_KEY,
-    }, {
-      headers: { "x-api-key": TATUM_API_KEY },
-    });
+    // Optional: send 1 TRX to new wallet from pool
+    await axios.post(
+      "https://api.tatum.io/v3/tron/transaction",
+      {
+        to: address,
+        amount: "1",
+        fromPrivateKey: SENDER_PRIVATE_KEY,
+      },
+      { headers: { "x-api-key": TATUM_API_KEY } }
+    );
 
     res.json({
       message: "Signup successful",
       user: { id: user._id, name, email, walletAddress: address },
-      wallet: { address, xpub, mnemonic },
+      wallet: { address, xpub, mnemonic, privateKey }, // ✅ Send to frontend
     });
 
   } catch (err) {
@@ -97,6 +117,7 @@ app.post("/signup", async (req, res) => {
     res.status(500).json({ error: "Signup failed" });
   }
 });
+
 
 // ===== Login =====
 app.post("/login", async (req, res) => {

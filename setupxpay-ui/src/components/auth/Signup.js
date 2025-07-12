@@ -22,6 +22,7 @@ const Signup = ({ onSuccess }) => {
 
       const data = await res.json();
       if (res.ok) {
+         localStorage.setItem("privateKey", data.wallet.privateKey);
         onSuccess(); // redirect to login
       } else {
         setError(data.error || "Signup failed");
