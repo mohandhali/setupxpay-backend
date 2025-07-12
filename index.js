@@ -408,7 +408,7 @@ async function sendUSDTviaTatum(from, to, amount) {
     const response = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
       to,
       amount,
-      fromPrivateKey: SENDER_PRIVATE_KEY,
+      fromPrivateKey: from,
       tokenAddress: TOKEN_ADDRESS,
       feeLimit: 1000
     }, {
