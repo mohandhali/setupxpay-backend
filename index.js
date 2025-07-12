@@ -155,33 +155,33 @@ app.get("/get-balance/:address", async (req, res) => {
 
 // ===== Manual USDT Transfer =====
 app.post("/send-usdt", async (req, res) => {
-  const { amountInr, walletAddress } = req.body;
-  if (!amountInr || !walletAddress) return res.status(400).json({ error: "Missing input" });
+  const { fromPrivateKey, to, amount } = req.body;
+
+  if (!fromPrivateKey || !to || !amount) {
+    return res.status(400).json({ success: false, error: "Missing input" });
+  }
 
   try {
-    const usdtRate = 83;
-    const usdtAmount = (amountInr / usdtRate).toFixed(2);
-
-    const response = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
-      to: walletAddress,
-      amount: usdtAmount,
-      fromPrivateKey: SENDER_PRIVATE_KEY,
+    const tx = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
+      to,
+      amount,
+      fromPrivateKey,
       tokenAddress: TOKEN_ADDRESS,
-      feeLimit: 1000,
+      feeLimit: 1000
     }, {
-      headers: { "x-api-key": TATUM_API_KEY, "Content-Type": "application/json" }
+      headers: {
+        "x-api-key": TATUM_API_KEY,
+        "Content-Type": "application/json"
+      }
     });
 
-    const txId = response?.data?.txId || "unknown";
-
-    await Transaction.create({ amountInr, wallet: walletAddress, txId, usdtAmount, rate: usdtRate });
-    res.json({ message: "USDT sent", txId, usdtAmount, rate: usdtRate });
-
-  } catch (error) {
-    console.error("❌ USDT send failed:", error.message);
-    res.status(500).json({ error: "Transfer failed" });
+    return res.json({ success: true, txId: tx.data.txId });
+  } catch (err) {
+    console.error("❌ Send failed:", err.response?.data || err.message);
+    return res.status(500).json({ success: false, error: "Transfer failed" });
   }
 });
+
 
 // ===== Binance USDT Rate Fetcher =====
 let liveRateData = { binanceRate: 0, markup: 1, userRate: 0, updatedAt: new Date() };
