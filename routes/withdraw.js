@@ -33,10 +33,12 @@ router.post("/inr-mock", async (req, res) => {
     }
 
     const user = await User.findById(userId);
-    if (!user || !user.walletAddress || !user.privateKey) {
-      console.log("❌ User or wallet/privateKey missing:", user);
-      return res.status(404).json({ message: "User or wallet/private key not found" });
-    }
+
+if (!user || !user.walletAddress) {
+  console.log("❌ User or wallet missing:", user);
+  return res.status(404).json({ message: "User or wallet not found" });
+}
+
 
     const rate = 95;
     const platformFee = 1;
