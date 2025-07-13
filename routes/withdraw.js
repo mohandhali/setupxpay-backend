@@ -73,26 +73,37 @@ router.post("/inr-mock", async (req, res) => {
       createdAt: new Date(),
     });
 
-    await newWithdraw.save();
+    try {
+  await newWithdraw.save();
+  console.log("✅ Withdraw saved to DB");
+} catch (err) {
+  console.error("❌ Error saving Withdraw:", err.message);
+}
 
     // ✅ Save transaction
-    await Transaction.create({
-  type: "withdraw-inr",
-  amountInr: Number(amount),
-  usdtAmount: Number(usdtAmount),
-  wallet: user.walletAddress,
-  txId: tatumRes.data.txId,
-  rate,
-  from: userId,
-  fee: "1 + 5",
-  network: isUpiValid ? "upi" : "bank",
-  bankDetails: {
-    accountHolder,
-    accountNumber,
-    ifsc,
-    upiId,
-  }
-});
+    try {
+  await Transaction.create({
+    type: "withdraw-inr",
+    amountInr: Number(amount),
+    usdtAmount: Number(usdtAmount),
+    wallet: user.walletAddress,
+    txId: tatumRes.data.txId,
+    rate,
+    from: user._id,
+    fee: "1 + 5",
+    network: isUpiValid ? "upi" : "bank",
+    bankDetails: {
+      accountHolder,
+      accountNumber,
+      ifsc,
+      upiId,
+    },
+  });
+  console.log("✅ Transaction saved to DB");
+} catch (err) {
+  console.error("❌ Error saving Transaction:", err.message);
+}
+
 
 
     res.json({
