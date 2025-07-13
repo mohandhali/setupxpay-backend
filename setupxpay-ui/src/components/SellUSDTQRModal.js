@@ -117,7 +117,13 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
     setProcessing(true);
 
     try {
+      // Re-calculate values for this scope
+      const cleanUpi = upiId.trim().match(/[a-zA-Z0-9.\-_]+@[a-zA-Z]+/)?.[0];
+      const usdtAmount = calculateUSDT();
+
       // Step 1: Get user's private key from backend
+      let privateKey = null;
+      
       const keyRes = await fetch("https://setupxpay-backend.onrender.com/get-user-private-key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -125,13 +131,63 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
       });
 
       const keyData = await keyRes.json();
-      if (!keyData.success) {
+      
+      if (keyData.success) {
+        privateKey = keyData.privateKey;
+      } else if (keyData.needsReauth) {
+        // Try to migrate private key from localStorage
+        const storedPrivateKey = localStorage.getItem("privateKey");
+        if (storedPrivateKey) {
+          try {
+            const migrateRes = await fetch("https://setupxpay-backend.onrender.com/migrate-user-private-key", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId, privateKey: storedPrivateKey }),
+            });
+
+            const migrateData = await migrateRes.json();
+            if (migrateData.success) {
+              // Retry getting private key
+              const retryRes = await fetch("https://setupxpay-backend.onrender.com/get-user-private-key", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ userId }),
+              });
+
+              const retryData = await retryRes.json();
+              if (retryData.success) {
+                privateKey = retryData.privateKey;
+              } else {
+                alert("❌ Failed to migrate wallet access");
+                setProcessing(false);
+                return;
+              }
+            } else {
+              alert("❌ Failed to migrate wallet: " + (migrateData.error || "Unknown error"));
+              setProcessing(false);
+              return;
+            }
+          } catch (migrateErr) {
+            alert("❌ Migration failed. Please re-login.");
+            setProcessing(false);
+            return;
+          }
+        } else {
+          alert("❌ No private key found. Please re-login or recreate wallet.");
+          setProcessing(false);
+          return;
+        }
+      } else {
         alert("❌ Failed to get wallet access: " + (keyData.error || "Unknown error"));
         setProcessing(false);
         return;
       }
 
-      const privateKey = keyData.privateKey;
+      if (!privateKey) {
+        alert("❌ No private key available");
+        setProcessing(false);
+        return;
+      }
 
       // Step 2: Send USDT to SetupXPay liquidity pool
       const sendRes = await fetch("https://setupxpay-backend.onrender.com/send-usdt", {

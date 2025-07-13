@@ -11,8 +11,8 @@ const BiometricAuth = ({ onSuccess, onCancel, message = "Authenticate to continu
 
   useEffect(() => {
     // Check if biometric authentication is available
-    if (window.PublicKeyCredential && PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
-      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+    if (typeof window !== 'undefined' && window.PublicKeyCredential && window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) {
+      window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
         .then((available) => {
           if (!available) {
             setAuthMethod("password");

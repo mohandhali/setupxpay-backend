@@ -205,8 +205,14 @@ app.post("/get-user-private-key", async (req, res) => {
       return res.status(404).json({ success: false, error: "User not found" });
     }
 
+    // Check if user has encrypted private key
     if (!user.encryptedPrivateKey) {
-      return res.status(400).json({ success: false, error: "No private key found for user" });
+      // For existing users, try to get from localStorage (temporary fix)
+      return res.status(400).json({ 
+        success: false, 
+        error: "No private key found for user. Please re-login or recreate wallet.",
+        needsReauth: true
+      });
     }
 
     // Decrypt and return private key
@@ -222,6 +228,32 @@ app.post("/get-user-private-key", async (req, res) => {
   } catch (err) {
     console.error("❌ Get private key error:", err.message);
     res.status(500).json({ success: false, error: "Failed to get private key" });
+  }
+});
+
+// ===== Migration: Add Private Key for Existing Users =====
+app.post("/migrate-user-private-key", async (req, res) => {
+  try {
+    const { userId, privateKey } = req.body;
+    
+    if (!userId || !privateKey) {
+      return res.status(400).json({ success: false, error: "User ID and private key required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    // Encrypt and store private key
+    user.encryptedPrivateKey = encryptPrivateKey(privateKey);
+    await user.save();
+
+    res.json({ success: true, message: "Private key migrated successfully" });
+
+  } catch (err) {
+    console.error("❌ Migration error:", err.message);
+    res.status(500).json({ success: false, error: "Migration failed" });
   }
 });
 
