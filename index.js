@@ -30,14 +30,22 @@ mongoose.connect("mongodb+srv://setupxadmin:WavMOQBBj3I2IcW9@cluster0.em2tu28.mo
 
 // ===== Encryption Utilities =====
 function encryptPrivateKey(privateKey) {
-  const cipher = crypto.createCipher('aes-256-cbc', ENCRYPTION_KEY);
+  // Create a fixed IV for simplicity (in production, use random IV)
+  const iv = Buffer.alloc(16, 0); // 16 bytes of zeros
+  const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32); // 32 bytes key
+  const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+  
   let encrypted = cipher.update(privateKey, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   return encrypted;
 }
 
 function decryptPrivateKey(encryptedPrivateKey) {
-  const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY);
+  // Create a fixed IV for simplicity (in production, use random IV)
+  const iv = Buffer.alloc(16, 0); // 16 bytes of zeros
+  const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32); // 32 bytes key
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+  
   let decrypted = decipher.update(encryptedPrivateKey, 'hex', 'utf8');
   decrypted += decipher.final('utf8');
   return decrypted;
