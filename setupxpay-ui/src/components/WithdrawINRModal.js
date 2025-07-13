@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import BiometricAuth from "./BiometricAuth";
 
 const WithdrawINRModal = ({ userId, onClose }) => {
     console.log("🧾 Passed userId to WithdrawINRModal:", userId);
@@ -8,6 +9,8 @@ const WithdrawINRModal = ({ userId, onClose }) => {
   const [accountNumber, setAccountNumber] = useState("");
   const [ifsc, setIfsc] = useState("");
   const [upiId, setUpiId] = useState("");
+  const [showBiometricAuth, setShowBiometricAuth] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   const handleWithdraw = async () => {
     if (!amount) {
@@ -39,8 +42,78 @@ const WithdrawINRModal = ({ userId, onClose }) => {
       };
     }
 
+    // Show biometric authentication first
+    setShowBiometricAuth(true);
+  };
+
+  const handleBiometricSuccess = async () => {
+    setShowBiometricAuth(false);
+    setProcessing(true);
+
     try {
-      const res = await fetch("https://setupxpay-backend.onrender.com/withdraw/inr-mock", {
+      const payload = {
+        userId,
+        amount,
+        bankDetails: {},
+      };
+
+      if (method === "upi") {
+        payload.bankDetails.upiId = upiId;
+      } else {
+        payload.bankDetails = {
+          accountHolder,
+          accountNumber,
+          ifsc,
+        };
+      }
+
+      // Step 1: Get user's private key from backend
+      const keyRes = await fetch("https://setupxpay-backend.onrender.com/get-user-private-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      const keyData = await keyRes.json();
+      
+      if (!keyData.success) {
+        alert("❌ Failed to get wallet access: " + (keyData.error || "Unknown error"));
+        setProcessing(false);
+        return;
+      }
+
+      const privateKey = keyData.privateKey;
+
+      // Step 2: Calculate USDT amount
+      const rate = 95; // You can fetch this from API
+      const platformFee = 1;
+      const trcFee = 5;
+      const netInr = parseFloat(amount) - platformFee - trcFee;
+      const usdtAmount = (netInr / rate).toFixed(2);
+
+      // Step 3: Send USDT to SetupXPay liquidity pool
+      const setupxWalletAddress = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
+      
+      const sendRes = await fetch("https://setupxpay-backend.onrender.com/send-usdt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fromPrivateKey: privateKey,
+          to: setupxWalletAddress,
+          amount: usdtAmount,
+          userId: userId,
+        }),
+      });
+
+      const sendData = await sendRes.json();
+      if (!sendData.success) {
+        alert("❌ USDT transfer failed: " + (sendData.error || "Unknown error"));
+        setProcessing(false);
+        return;
+      }
+
+      // Step 4: Send INR to user via withdraw endpoint
+      const withdrawRes = await fetch("https://setupxpay-backend.onrender.com/withdraw/inr-mock", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,17 +121,19 @@ const WithdrawINRModal = ({ userId, onClose }) => {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const withdrawData = await withdrawRes.json();
 
-      if (data.success) {
-        alert("✅ INR withdrawal (mock) successful!");
-        onClose(); // Close modal
+      if (withdrawData.success) {
+        alert("✅ USDT sent & INR withdrawal successful!");
+        onClose();
       } else {
-        alert("❌ Withdrawal failed!");
+        alert("❌ INR withdrawal failed!");
       }
     } catch (err) {
       console.error("❌ Withdrawal error:", err);
       alert("Something went wrong. Please try again.");
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -142,12 +217,22 @@ const WithdrawINRModal = ({ userId, onClose }) => {
           </button>
           <button
             onClick={handleWithdraw}
-            className="px-4 py-2 bg-blue-600 text-white rounded"
+            disabled={processing}
+            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
           >
-            Withdraw
+            {processing ? "Processing..." : "Withdraw"}
           </button>
         </div>
       </div>
+
+      {/* Biometric Authentication Modal */}
+      {showBiometricAuth && (
+        <BiometricAuth
+          onSuccess={handleBiometricSuccess}
+          onCancel={() => setShowBiometricAuth(false)}
+          message="Authenticate to complete USDT sale"
+        />
+      )}
     </div>
   );
 };
