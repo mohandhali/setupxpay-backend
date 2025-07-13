@@ -6,6 +6,9 @@ const userSchema = new mongoose.Schema({
   password: String,
   walletAddress: String,
   xpub: String,
+  encryptedPrivateKey: String, // Encrypted private key
+  biometricEnabled: { type: Boolean, default: false },
+  oneTimeSigned: { type: Boolean, default: false }, // Track if user has signed one-time permission
   createdAt: { type: Date, default: Date.now },
 });
 

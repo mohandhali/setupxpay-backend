@@ -21,11 +21,27 @@ const TATUM_API_KEY = "t-684c3a005ad68338f85afe22-1792ec2110654df39d604f3b";
 const SENDER_PRIVATE_KEY = "ddc4d27b4b6eaf4c74088ac546b18e35674fa997c6e9d77d209f5fafa54b79ad";
 const TOKEN_ADDRESS = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
 const RAZORPAY_WEBHOOK_SECRET = "setupx_secret_key";
+const ENCRYPTION_KEY = "setupxpay_encryption_key_2024"; // For encrypting private keys
 
 // ===== MongoDB Connection =====
 mongoose.connect("mongodb+srv://setupxadmin:WavMOQBBj3I2IcW9@cluster0.em2tu28.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
   .then(() => console.log("✅ Connected to MongoDB"))
   .catch((err) => console.error("❌ MongoDB Error:", err));
+
+// ===== Encryption Utilities =====
+function encryptPrivateKey(privateKey) {
+  const cipher = crypto.createCipher('aes-256-cbc', ENCRYPTION_KEY);
+  let encrypted = cipher.update(privateKey, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+}
+
+function decryptPrivateKey(encryptedPrivateKey) {
+  const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY);
+  let decrypted = decipher.update(encryptedPrivateKey, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
 
 // ===== Middleware =====
 app.use(cors({
@@ -91,7 +107,7 @@ app.post("/signup", async (req, res) => {
       password: hashedPassword,
       walletAddress: address,
       xpub,
-      privateKey,
+      encryptedPrivateKey: encryptPrivateKey(privateKey), // Encrypt before storing
     });
 
     await user.save();
@@ -172,6 +188,40 @@ app.get("/get-balance/:address", async (req, res) => {
   } catch (error) {
     console.error("❌ Balance error:", error.message);
     res.status(500).json({ error: "Failed to fetch balance" });
+  }
+});
+
+// ===== Get User's Private Key (for transactions) =====
+app.post("/get-user-private-key", async (req, res) => {
+  try {
+    const { userId } = req.body;
+    
+    if (!userId) {
+      return res.status(400).json({ success: false, error: "User ID required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    if (!user.encryptedPrivateKey) {
+      return res.status(400).json({ success: false, error: "No private key found for user" });
+    }
+
+    // Decrypt and return private key
+    const privateKey = decryptPrivateKey(user.encryptedPrivateKey);
+    
+    res.json({ 
+      success: true, 
+      privateKey,
+      biometricEnabled: user.biometricEnabled,
+      oneTimeSigned: user.oneTimeSigned
+    });
+
+  } catch (err) {
+    console.error("❌ Get private key error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to get private key" });
   }
 });
 

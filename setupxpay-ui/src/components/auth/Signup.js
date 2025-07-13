@@ -1,12 +1,15 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import OneTimeSignModal from "../OneTimeSignModal";
 
 const Signup = ({ onSuccess }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showOneTimeSign, setShowOneTimeSign] = useState(false);
+  const [signupData, setSignupData] = useState(null);
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
@@ -22,8 +25,8 @@ const Signup = ({ onSuccess }) => {
 
       const data = await res.json();
       if (res.ok) {
-         localStorage.setItem("privateKey", data.wallet.privateKey);
-        onSuccess(); // redirect to login
+        setSignupData(data);
+        setShowOneTimeSign(true); // Show one-time sign permission
       } else {
         setError(data.error || "Signup failed");
       }
@@ -97,6 +100,25 @@ const Signup = ({ onSuccess }) => {
           </span>
         </p>
       </motion.div>
+
+      {/* One-Time Sign Permission Modal */}
+      {showOneTimeSign && signupData && (
+        <OneTimeSignModal
+          onAccept={() => {
+            // Store private key temporarily for download
+            localStorage.setItem("privateKey", signupData.wallet.privateKey);
+            setShowOneTimeSign(false);
+            onSuccess(); // redirect to login
+          }}
+          onDecline={() => {
+            // Still complete signup but without one-time permission
+            localStorage.setItem("privateKey", signupData.wallet.privateKey);
+            setShowOneTimeSign(false);
+            onSuccess(); // redirect to login
+          }}
+          walletAddress={signupData.wallet.address}
+        />
+      )}
     </div>
   );
 };

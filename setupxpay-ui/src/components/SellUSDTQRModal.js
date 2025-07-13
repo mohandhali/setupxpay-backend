@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { FaArrowLeft } from "react-icons/fa";
+import BiometricAuth from "./BiometricAuth";
 
 const SellUSDTQRModal = ({ userId, onClose }) => {
   const [step, setStep] = useState("scan");
@@ -11,6 +12,7 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
   const platformFee = 1;
   const trcFee = 5;
   const [processing, setProcessing] = useState(false);
+  const [showBiometricAuth, setShowBiometricAuth] = useState(false);
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
 
@@ -105,16 +107,33 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
     }
 
     const usdtAmount = calculateUSDT();
-    const privateKey = localStorage.getItem("privateKey");
+    
+    // Show biometric authentication first
+    setShowBiometricAuth(true);
+  };
 
-    if (!privateKey) {
-      alert("User wallet not available. Please relogin or recreate wallet.");
-      return;
-    }
-
+  const handleBiometricSuccess = async () => {
+    setShowBiometricAuth(false);
     setProcessing(true);
 
     try {
+      // Step 1: Get user's private key from backend
+      const keyRes = await fetch("https://setupxpay-backend.onrender.com/get-user-private-key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+
+      const keyData = await keyRes.json();
+      if (!keyData.success) {
+        alert("❌ Failed to get wallet access: " + (keyData.error || "Unknown error"));
+        setProcessing(false);
+        return;
+      }
+
+      const privateKey = keyData.privateKey;
+
+      // Step 2: Send USDT to SetupXPay liquidity pool
       const sendRes = await fetch("https://setupxpay-backend.onrender.com/send-usdt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -132,6 +151,7 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
         return;
       }
 
+      // Step 3: Send INR to merchant via Razorpay
       const inrPayload = {
         userId,
         amount: amountInr,
@@ -235,6 +255,15 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
             {processing ? "Processing..." : "Confirm & Sell"}
           </button>
         </div>
+      )}
+
+      {/* Biometric Authentication Modal */}
+      {showBiometricAuth && (
+        <BiometricAuth
+          onSuccess={handleBiometricSuccess}
+          onCancel={() => setShowBiometricAuth(false)}
+          message="Authenticate to complete USDT sale"
+        />
       )}
     </div>
   );
