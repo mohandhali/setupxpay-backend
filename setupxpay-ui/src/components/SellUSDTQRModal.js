@@ -189,7 +189,27 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
         return;
       }
 
-      // Step 2: Send USDT to SetupXPay liquidity pool
+      // Step 2: Ensure TRX balance for transaction
+      const user = JSON.parse(localStorage.getItem("user"));
+      const trxRes = await fetch("https://setupxpay-backend.onrender.com/ensure-trx-balance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: user.walletAddress }),
+      });
+
+      const trxData = await trxRes.json();
+      if (!trxData.success) {
+        alert("❌ Failed to ensure TRX balance: " + (trxData.error || "Unknown error"));
+        setProcessing(false);
+        return;
+      }
+
+      if (trxData.funded) {
+        // Wait a bit for TRX transaction to confirm
+        await new Promise(resolve => setTimeout(resolve, 3000));
+      }
+
+      // Step 3: Send USDT to SetupXPay liquidity pool
       const sendRes = await fetch("https://setupxpay-backend.onrender.com/send-usdt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -207,7 +227,7 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
         return;
       }
 
-      // Step 3: Send INR to merchant via Razorpay
+      // Step 4: Send INR to merchant via Razorpay
       const inrPayload = {
         userId,
         amount: amountInr,

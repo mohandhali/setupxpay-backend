@@ -192,10 +192,71 @@ app.get("/get-balance/:address", async (req, res) => {
       if (token) usdtBalance = token[usdtContract];
     }
 
-    res.json({ address, usdt: usdtBalance });
+    // Get TRX balance
+    const trxBalance = response.data.balance || "0";
+
+    res.json({ 
+      address, 
+      usdt: usdtBalance,
+      trx: trxBalance 
+    });
   } catch (error) {
     console.error("❌ Balance error:", error.message);
     res.status(500).json({ error: "Failed to fetch balance" });
+  }
+});
+
+// ===== Check and Fund TRX for Transaction =====
+app.post("/ensure-trx-balance", async (req, res) => {
+  const { address } = req.body;
+  
+  if (!address) {
+    return res.status(400).json({ success: false, error: "Address required" });
+  }
+
+  try {
+    // Get current balance
+    const balanceRes = await axios.get(`https://api.tatum.io/v3/tron/account/${address}`, {
+      headers: { "x-api-key": TATUM_API_KEY }
+    });
+
+    const trxBalance = parseFloat(balanceRes.data.balance || "0");
+    const minTrxRequired = 1; // Minimum TRX needed for transaction
+
+    if (trxBalance < minTrxRequired) {
+      // Send TRX to user wallet
+      const trxAmount = "2"; // Send 2 TRX for fees
+      
+      const trxRes = await axios.post("https://api.tatum.io/v3/tron/transaction", {
+        to: address,
+        amount: trxAmount,
+        fromPrivateKey: SENDER_PRIVATE_KEY,
+      }, {
+        headers: {
+          "x-api-key": TATUM_API_KEY,
+          "Content-Type": "application/json"
+        }
+      });
+
+      console.log("✅ TRX funded:", trxRes.data.txId);
+      
+      res.json({ 
+        success: true, 
+        message: "TRX funded for transaction",
+        txId: trxRes.data.txId,
+        funded: true
+      });
+    } else {
+      res.json({ 
+        success: true, 
+        message: "Sufficient TRX balance",
+        funded: false
+      });
+    }
+
+  } catch (error) {
+    console.error("❌ TRX funding error:", error.response?.data || error.message);
+    res.status(500).json({ success: false, error: "Failed to fund TRX" });
   }
 });
 
