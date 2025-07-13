@@ -77,17 +77,23 @@ router.post("/inr-mock", async (req, res) => {
 
     // ✅ Save transaction
     await Transaction.create({
-      type: "withdraw-inr",
-      amountInr: amount,
-      usdtAmount: usdtAmount,
-      wallet: user.walletAddress,
-      txId: tatumRes.data.txId,
-      rate,
-      from: userId,
-      fee: "1 + 5", // platform + TRC20 fee
-      network: isUpiValid ? "upi" : "bank",
-      bankDetails,
-    });
+  type: "withdraw-inr",
+  amountInr: Number(amount),
+  usdtAmount: Number(usdtAmount),
+  wallet: user.walletAddress,
+  txId: tatumRes.data.txId,
+  rate,
+  from: userId,
+  fee: "1 + 5",
+  network: isUpiValid ? "upi" : "bank",
+  bankDetails: {
+    accountHolder,
+    accountNumber,
+    ifsc,
+    upiId,
+  }
+});
+
 
     res.json({
       success: true,
