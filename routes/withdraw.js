@@ -39,12 +39,15 @@ if (!user || !user.walletAddress) {
   return res.status(404).json({ message: "User or wallet not found" });
 }
 
+ console.log("✅ INR payout: user found", user.walletAddress);
 
     const rate = 95;
     const platformFee = 1;
     const trcFee = 5;
     const netInr = parseFloat(amount) - platformFee - trcFee;
     const usdtAmount = (netInr / rate).toFixed(2);
+
+    console.log("✅ Calculated USDT amount:", usdtAmount);
 
     console.log("💰 Sending", usdtAmount, "USDT to SetupX wallet");
 
