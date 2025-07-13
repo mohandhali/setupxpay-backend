@@ -71,6 +71,20 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
     }
   };
 
+  const handleQRUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const html5QrCode = new Html5Qrcode("qr-reader");
+    try {
+      const result = await html5QrCode.scanFile(file, true);
+      handleScan(result);
+    } catch (err) {
+      console.error("QR Upload failed:", err);
+      alert("❌ Failed to read QR from uploaded image.");
+    }
+  };
+
   const calculateUSDT = () => {
     const amt = parseFloat(amountInr);
     if (!amt) return 0;
@@ -101,7 +115,6 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
     setProcessing(true);
 
     try {
-      // 🔁 Step 1: Transfer USDT to SetupX Pool Wallet
       const sendRes = await fetch("https://setupxpay-backend.onrender.com/send-usdt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,7 +132,6 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
         return;
       }
 
-      // ✅ Step 2: Trigger INR payout to merchant (mocked)
       const inrPayload = {
         userId,
         amount: amountInr,
@@ -165,6 +177,17 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
             <p className="text-sm text-gray-300">Auto-detect UPI & merchant</p>
           </div>
           <div ref={scannerRef} id="qr-reader" className="w-72 h-72 rounded-xl overflow-hidden" />
+
+          {/* ✅ Upload QR Button */}
+          <label className="mt-4 text-sm px-4 py-2 bg-white text-blue-700 rounded-xl shadow hover:bg-blue-50 cursor-pointer">
+            Upload QR from Device
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleQRUpload}
+              className="hidden"
+            />
+          </label>
         </div>
       )}
 

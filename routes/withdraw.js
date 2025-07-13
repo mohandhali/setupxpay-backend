@@ -32,20 +32,20 @@ router.post("/inr-mock", async (req, res) => {
       });
     }
 
-    // ✅ Fetch user
     const user = await User.findById(userId);
     if (!user || !user.walletAddress || !user.privateKey) {
+      console.log("❌ User or wallet/privateKey missing:", user);
       return res.status(404).json({ message: "User or wallet/private key not found" });
     }
 
-    // ✅ Calculate USDT from INR minus fees
-    const rate = 95; // you can fetch from live endpoint
+    const rate = 95;
     const platformFee = 1;
     const trcFee = 5;
     const netInr = parseFloat(amount) - platformFee - trcFee;
     const usdtAmount = (netInr / rate).toFixed(2);
 
-    // ✅ Send USDT from user to SetupX
+    console.log("💰 Sending", usdtAmount, "USDT to SetupX wallet");
+
     const tatumRes = await axios.post(
       "https://api-eu1.tatum.io/v3/tron/transaction",
       {
@@ -62,7 +62,6 @@ router.post("/inr-mock", async (req, res) => {
 
     console.log("✅ USDT sent. Tatum TxID:", tatumRes.data.txId);
 
-    // ✅ Record mock INR withdrawal
     const newWithdraw = new Withdraw({
       userId,
       amount,
@@ -74,47 +73,39 @@ router.post("/inr-mock", async (req, res) => {
     });
 
     try {
-  await newWithdraw.save();
-  console.log("✅ Withdraw saved to DB");
-} catch (err) {
-  console.error("❌ Error saving Withdraw:", err.message);
-}
+      await newWithdraw.save();
+      console.log("✅ Withdraw saved to DB");
+    } catch (err) {
+      console.error("❌ Error saving Withdraw:", err.message);
+    }
 
-    // ✅ Save transaction
     try {
-  await Transaction.create({
-    type: "withdraw-inr",
-    amountInr: Number(amount),
-    usdtAmount: Number(usdtAmount),
-    wallet: user.walletAddress,
-    txId: tatumRes.data.txId,
-    rate,
-    from: user._id,
-    fee: "1 + 5",
-    network: isUpiValid ? "upi" : "bank",
-    bankDetails: {
-      accountHolder,
-      accountNumber,
-      ifsc,
-      upiId,
-    },
-  });
-  console.log("✅ Transaction saved to DB");
-} catch (err) {
-  console.error("❌ Error saving Transaction:", err.message);
-}
-
-
+      await Transaction.create({
+        type: "withdraw-inr",
+        amountInr: amount,
+        usdtAmount: usdtAmount,
+        wallet: user.walletAddress,
+        txId: tatumRes.data.txId,
+        rate,
+        from: userId,
+        fee: "1 + 5",
+        network: isUpiValid ? "upi" : "bank",
+        bankDetails,
+      });
+      console.log("✅ Transaction saved to DB");
+    } catch (err) {
+      console.error("❌ Error saving Transaction:", err.message);
+    }
 
     res.json({
       success: true,
       message: "USDT transferred & mock INR payout successful",
-      transactionId: newWithdraw._id,
     });
   } catch (err) {
     console.error("❌ Sell USDT Mock Error:", err.response?.data || err.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
 
 module.exports = router;
