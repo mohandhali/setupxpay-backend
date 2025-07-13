@@ -91,6 +91,7 @@ app.post("/signup", async (req, res) => {
       password: hashedPassword,
       walletAddress: address,
       xpub,
+      privateKey,
     });
 
     await user.save();
