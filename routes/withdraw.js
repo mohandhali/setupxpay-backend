@@ -1,11 +1,24 @@
 const express = require("express");
 const router = express.Router();
 const axios = require("axios");
+const crypto = require("crypto");
 const Withdraw = require("../models/Withdraw");
 const Transaction = require("../models/Transaction");
 const User = require("../models/User");
 
 const SETUPX_WALLET = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb"; // ✅ Your pool wallet
+const ENCRYPTION_KEY = "setupxpay_encryption_key_2024"; // For decrypting private keys
+
+// Decryption function
+function decryptPrivateKey(encryptedPrivateKey) {
+  const iv = Buffer.alloc(16, 0);
+  const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
+  const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+  
+  let decrypted = decipher.update(encryptedPrivateKey, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+}
 
 router.post("/inr-mock", async (req, res) => {
   try {
@@ -49,23 +62,12 @@ if (!user || !user.walletAddress) {
 
     console.log("✅ Calculated USDT amount:", usdtAmount);
 
-    console.log("💰 Sending", usdtAmount, "USDT to SetupX wallet");
+    // Note: USDT is already sent in the main flow, this is just for INR payout
+    console.log("💰 Mock INR payout to:", upiId || `${accountHolder} (${accountNumber})`);
 
-    const tatumRes = await axios.post(
-      "https://api-eu1.tatum.io/v3/tron/transaction",
-      {
-        fromPrivateKey: user.privateKey,
-        to: SETUPX_WALLET,
-        amount: usdtAmount,
-      },
-      {
-        headers: {
-          "x-api-key": process.env.TATUM_API_KEY,
-        },
-      }
-    );
-
-    console.log("✅ USDT sent. Tatum TxID:", tatumRes.data.txId);
+    // Simulate INR payout (in real implementation, this would be Razorpay/UPI)
+    const mockTxId = `mock_inr_${Date.now()}`;
+    console.log("✅ Mock INR payout successful. TxID:", mockTxId);
 
     const newWithdraw = new Withdraw({
       userId,
@@ -90,7 +92,7 @@ if (!user || !user.walletAddress) {
         amountInr: amount,
         usdtAmount: usdtAmount,
         wallet: user.walletAddress,
-        txId: tatumRes.data.txId,
+        txId: mockTxId,
         rate,
         from: userId,
         fee: "1 + 5",
