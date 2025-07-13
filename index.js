@@ -335,23 +335,101 @@ app.post("/send-usdt", async (req, res) => {
   }
 
   try {
-    const tx = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
-      to,
-      amount,
-      fromPrivateKey,
-      tokenAddress: TOKEN_ADDRESS,
-      feeLimit: 1000
+    // First, get the sender's address from private key
+    const addressRes = await axios.post("https://api.tatum.io/v3/tron/wallet/priv", {
+      privateKey: fromPrivateKey
     }, {
-      headers: {
-        "x-api-key": TATUM_API_KEY,
-        "Content-Type": "application/json"
-      }
+      headers: { "x-api-key": TATUM_API_KEY }
     });
 
-    return res.json({ success: true, txId: tx.data.txId });
+    const senderAddress = addressRes.data.address;
+    console.log("🔍 Sender address:", senderAddress);
+
+    // Check TRX balance before transaction
+    const balanceRes = await axios.get(`https://api.tatum.io/v3/tron/account/${senderAddress}`, {
+      headers: { "x-api-key": TATUM_API_KEY }
+    });
+
+    const trxBalance = parseFloat(balanceRes.data.balance || "0");
+    console.log("🔍 TRX Balance:", trxBalance);
+
+    if (trxBalance < 1) {
+      console.log("⚠️ Low TRX balance, funding...");
+      
+      // Fund TRX
+      const trxRes = await axios.post("https://api.tatum.io/v3/tron/transaction", {
+        to: senderAddress,
+        amount: "5", // Send more TRX
+        fromPrivateKey: SENDER_PRIVATE_KEY,
+      }, {
+        headers: {
+          "x-api-key": TATUM_API_KEY,
+          "Content-Type": "application/json"
+        }
+      });
+
+      console.log("✅ TRX funded:", trxRes.data.txId);
+      
+      // Wait for TRX transaction to confirm
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+
+    console.log("🚀 Starting USDT transfer...");
+    
+    // Try with lower fee limit first
+    try {
+      const tx = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
+        to,
+        amount,
+        fromPrivateKey,
+        tokenAddress: TOKEN_ADDRESS,
+        feeLimit: 100
+      }, {
+        headers: {
+          "x-api-key": TATUM_API_KEY,
+          "Content-Type": "application/json"
+        }
+      });
+
+      console.log("✅ USDT transfer successful:", tx.data.txId);
+      return res.json({ success: true, txId: tx.data.txId });
+    } catch (feeError) {
+      console.log("⚠️ Low fee failed, trying with higher fee...");
+      
+      // Try with higher fee limit
+      const tx = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
+        to,
+        amount,
+        fromPrivateKey,
+        tokenAddress: TOKEN_ADDRESS,
+        feeLimit: 500
+      }, {
+        headers: {
+          "x-api-key": TATUM_API_KEY,
+          "Content-Type": "application/json"
+        }
+      });
+
+      console.log("✅ USDT transfer successful with higher fee:", tx.data.txId);
+      return res.json({ success: true, txId: tx.data.txId });
+    }
   } catch (err) {
     console.error("❌ Send failed:", err.response?.data || err.message);
-    return res.status(500).json({ success: false, error: "Transfer failed" });
+    
+    // Check if it's a resource insufficient error
+    if (err.response?.data?.cause?.includes('Account resource insufficient')) {
+      return res.status(500).json({ 
+        success: false, 
+        error: "Insufficient TRX for transaction fees. Please try again in a few minutes.",
+        details: err.response?.data 
+      });
+    }
+    
+    return res.status(500).json({ 
+      success: false, 
+      error: err.response?.data?.message || err.message,
+      details: err.response?.data 
+    });
   }
 });
 
