@@ -328,21 +328,20 @@ app.post("/migrate-user-private-key", async (req, res) => {
 
 // ===== Manual USDT Transfer =====
 app.post("/send-usdt", async (req, res) => {
-  const { fromPrivateKey, to, amount } = req.body;
+  const { fromPrivateKey, to, amount, userId } = req.body;
 
-  if (!fromPrivateKey || !to || !amount) {
+  if (!fromPrivateKey || !to || !amount || !userId) {
     return res.status(400).json({ success: false, error: "Missing input" });
   }
 
   try {
-    // First, get the sender's address from private key
-    const addressRes = await axios.post("https://api.tatum.io/v3/tron/wallet/priv", {
-      privateKey: fromPrivateKey
-    }, {
-      headers: { "x-api-key": TATUM_API_KEY }
-    });
-
-    const senderAddress = addressRes.data.address;
+    // Get user data
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(400).json({ success: false, error: "User not found" });
+    }
+    
+    const senderAddress = user.walletAddress;
     console.log("🔍 Sender address:", senderAddress);
 
     // Check TRX balance before transaction

@@ -217,6 +217,7 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
           fromPrivateKey: privateKey,
           to: setupxWalletAddress,
           amount: usdtAmount,
+          userId: userId,
         }),
       });
 
