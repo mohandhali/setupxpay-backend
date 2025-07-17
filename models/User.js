@@ -9,7 +9,6 @@ const userSchema = new mongoose.Schema({
   encryptedPrivateKey: String, // TRC20 encrypted private key
   bep20Address: String, // BEP20 address
   bep20EncryptedPrivateKey: String, // BEP20 encrypted private key
-  bep20Mnemonic: String, // BEP20 mnemonic (optional, for backup)
   biometricEnabled: { type: Boolean, default: false },
   oneTimeSigned: { type: Boolean, default: false }, // Track if user has signed one-time permission
   createdAt: { type: Date, default: Date.now },

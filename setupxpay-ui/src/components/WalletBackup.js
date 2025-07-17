@@ -17,6 +17,7 @@ const WalletBackup = ({ trc20, bep20, onComplete }) => {
   const [bepConfirm, setBepConfirm] = useState("");
   const [trcCheck, setTrcCheck] = useState(false);
   const [bepCheck, setBepCheck] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   // Random indices for phrase confirm
   const trcIndices = getRandomIndices(trc20.mnemonic, 2);
@@ -50,6 +51,17 @@ const WalletBackup = ({ trc20, bep20, onComplete }) => {
   React.useEffect(() => {
     setConfirmed(trcCheck && bepCheck);
   }, [trcCheck, bepCheck]);
+
+  // Show success and call onComplete after confirm
+  React.useEffect(() => {
+    if (confirmed) {
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        onComplete();
+      }, 2000);
+    }
+  }, [confirmed, onComplete]);
 
   return (
     <div className="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center p-4 overflow-auto">
@@ -139,10 +151,19 @@ const WalletBackup = ({ trc20, bep20, onComplete }) => {
         <button
           className={`w-full py-3 rounded-xl font-bold text-lg transition-all ${confirmed ? "bg-green-600 text-white hover:bg-green-700" : "bg-gray-300 text-gray-500 cursor-not-allowed"}`}
           disabled={!confirmed}
-          onClick={onComplete}
+          onClick={() => setConfirmed(true)}
         >
           I have securely backed up my wallet
         </button>
+        {showSuccess && (
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="bg-white border border-green-400 rounded-2xl shadow-xl px-8 py-6 flex flex-col items-center">
+              <FaCheckCircle className="text-4xl text-green-600 mb-2" />
+              <div className="text-lg font-bold text-green-700 mb-1">Signup Complete!</div>
+              <div className="text-gray-700 mb-2">Now you can login to your account.</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -133,7 +133,7 @@ app.post("/signup", async (req, res) => {
       encryptedPrivateKey: encryptPrivateKey(privateKey), // TRC20
       bep20Address,
       bep20EncryptedPrivateKey: encryptPrivateKey(bep20PrivateKey),
-      bep20Mnemonic,
+      // Do NOT store mnemonic in DB
     });
 
     await user.save();
