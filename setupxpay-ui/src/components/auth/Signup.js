@@ -20,7 +20,7 @@ const Signup = ({ onSuccess }) => {
     setError("");
 
     try {
-      const res = await fetch("https://setupxpay-backend.onrender.com/signup", {
+      const res = await fetch("https://setupxpay-backend.onrender.com/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
