@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { FaArrowLeft } from "react-icons/fa";
 import BiometricAuth from "./BiometricAuth";
+import SuccessModal from "./SuccessModal";
 
 const SellUSDTQRModal = ({ userId, onClose }) => {
   const [step, setStep] = useState("scan");
@@ -13,6 +14,8 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
   const trcFee = 5;
   const [processing, setProcessing] = useState(false);
   const [showBiometricAuth, setShowBiometricAuth] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successDetails, setSuccessDetails] = useState({});
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
 
@@ -243,8 +246,16 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
 
       const inrData = await inrRes.json();
       if (inrData.success) {
-        alert("✅ USDT sent & INR payout complete");
-        onClose();
+        // Show success modal with details
+        setSuccessDetails({
+          "USDT Sent": `${usdtAmount} USDT`,
+          "INR Amount": `₹${amountInr}`,
+          "Merchant": merchantName,
+          "UPI ID": cleanUpi,
+          "Transaction ID": sendData.txId,
+          "Rate": `₹${rate}`
+        });
+        setShowSuccessModal(true);
       } else {
         alert("❌ INR payout failed");
       }
@@ -342,6 +353,18 @@ const SellUSDTQRModal = ({ userId, onClose }) => {
           message="Authenticate to complete USDT sale"
         />
       )}
+
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          onClose();
+        }}
+        title="Payment Successful!"
+        message="Your USDT has been sent and INR payment is complete."
+        details={successDetails}
+      />
     </div>
   );
 };

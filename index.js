@@ -89,18 +89,15 @@ app.post("/signup", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // === TRC20 (Tron) Wallet Generation ===
     const walletRes = await axios.get("https://api.tatum.io/v3/tron/wallet", {
       headers: { "x-api-key": TATUM_API_KEY },
     });
-
     const { mnemonic, xpub } = walletRes.data;
-
     const addressRes = await axios.get(`https://api.tatum.io/v3/tron/address/${xpub}/0`, {
       headers: { "x-api-key": TATUM_API_KEY },
     });
-
     const address = addressRes.data.address;
-
     // ✅ Get Private Key from Mnemonic
     const privateKeyRes = await axios.post(
       "https://api.tatum.io/v3/tron/wallet/priv",
@@ -109,13 +106,34 @@ app.post("/signup", async (req, res) => {
     );
     const privateKey = privateKeyRes.data.key;
 
+    // === BEP20 (BSC) Wallet Generation ===
+    const bep20WalletRes = await axios.get("https://api.tatum.io/v3/bsc/wallet", {
+      headers: { "x-api-key": TATUM_API_KEY },
+    });
+    const bep20Mnemonic = bep20WalletRes.data.mnemonic;
+    const bep20Xpub = bep20WalletRes.data.xpub;
+    const bep20AddressRes = await axios.get(`https://api.tatum.io/v3/bsc/address/${bep20Xpub}/0`, {
+      headers: { "x-api-key": TATUM_API_KEY },
+    });
+    const bep20Address = bep20AddressRes.data.address;
+    // ✅ Get BEP20 Private Key from Mnemonic
+    const bep20PrivateKeyRes = await axios.post(
+      "https://api.tatum.io/v3/bsc/wallet/priv",
+      { index: 0, mnemonic: bep20Mnemonic },
+      { headers: { "x-api-key": TATUM_API_KEY } }
+    );
+    const bep20PrivateKey = bep20PrivateKeyRes.data.key;
+
     const user = new User({
       name,
       email,
       password: hashedPassword,
       walletAddress: address,
       xpub,
-      encryptedPrivateKey: encryptPrivateKey(privateKey), // Encrypt before storing
+      encryptedPrivateKey: encryptPrivateKey(privateKey), // TRC20
+      bep20Address,
+      bep20EncryptedPrivateKey: encryptPrivateKey(bep20PrivateKey),
+      bep20Mnemonic,
     });
 
     await user.save();
@@ -133,8 +151,11 @@ app.post("/signup", async (req, res) => {
 
     res.json({
       message: "Signup successful",
-      user: { id: user._id, name, email, walletAddress: address },
-      wallet: { address, xpub, mnemonic, privateKey }, // ✅ Send to frontend
+      user: { id: user._id, name, email, walletAddress: address, bep20Address },
+      wallet: {
+        trc20: { address, xpub, mnemonic, privateKey },
+        bep20: { address: bep20Address, xpub: bep20Xpub, mnemonic: bep20Mnemonic, privateKey: bep20PrivateKey },
+      },
     });
 
   } catch (err) {

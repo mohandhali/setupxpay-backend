@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import BiometricAuth from "./BiometricAuth";
+import SuccessModal from "./SuccessModal";
 
 const WithdrawINRModal = ({ userId, onClose }) => {
     console.log("🧾 Passed userId to WithdrawINRModal:", userId);
@@ -10,6 +11,8 @@ const WithdrawINRModal = ({ userId, onClose }) => {
   const [ifsc, setIfsc] = useState("");
   const [upiId, setUpiId] = useState("");
   const [showBiometricAuth, setShowBiometricAuth] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successDetails, setSuccessDetails] = useState({});
   const [processing, setProcessing] = useState(false);
 
   const handleWithdraw = async () => {
@@ -124,8 +127,16 @@ const WithdrawINRModal = ({ userId, onClose }) => {
       const withdrawData = await withdrawRes.json();
 
       if (withdrawData.success) {
-        alert("✅ USDT sent & INR withdrawal successful!");
-        onClose();
+        // Show success modal with details
+        setSuccessDetails({
+          "USDT Sent": `${usdtAmount} USDT`,
+          "INR Amount": `₹${amount}`,
+          "Method": method === "upi" ? "UPI" : "Bank Transfer",
+          "Recipient": method === "upi" ? upiId : `${accountHolder} (${accountNumber})`,
+          "Transaction ID": sendData.txId,
+          "Rate": `₹${rate}`
+        });
+        setShowSuccessModal(true);
       } else {
         alert("❌ INR withdrawal failed!");
       }
@@ -138,89 +149,129 @@ const WithdrawINRModal = ({ userId, onClose }) => {
   };
 
   return (
-    <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-40 z-50">
-      <div className="bg-white p-6 rounded-xl w-[90%] max-w-md shadow-lg">
-        <h2 className="text-xl font-semibold mb-4">Withdraw INR</h2>
+    <div className="fixed inset-0 bg-white z-50 flex flex-col">
+      {/* Header */}
+      <div className="flex items-center p-4 shadow border-b">
+        <button onClick={onClose} className="text-gray-700 text-lg mr-4">
+          ←
+        </button>
+        <h2 className="text-xl font-semibold text-gray-800">Sell USDT for INR</h2>
+      </div>
 
-        <div className="mb-4">
-          <label className="block mb-2 font-medium">Withdraw Method:</label>
+      {/* Content */}
+      <div className="flex-1 p-6 overflow-auto">
+
+        <div className="mb-6">
+          <label className="block mb-3 font-semibold text-gray-700">Payment Method:</label>
           <div className="flex gap-4">
-            <label>
+            <label className="flex-1">
               <input
                 type="radio"
                 value="upi"
                 checked={method === "upi"}
                 onChange={() => setMethod("upi")}
+                className="hidden"
               />
-              <span className="ml-2">UPI</span>
+              <div className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                method === "upi" 
+                  ? "border-blue-500 bg-blue-50" 
+                  : "border-gray-200 hover:border-gray-300"
+              }`}>
+                <div className="text-center">
+                  <div className="text-2xl mb-2">📱</div>
+                  <span className="font-medium">UPI</span>
+                </div>
+              </div>
             </label>
-            <label>
+            <label className="flex-1">
               <input
                 type="radio"
                 value="bank"
                 checked={method === "bank"}
                 onChange={() => setMethod("bank")}
+                className="hidden"
               />
-              <span className="ml-2">Bank Transfer</span>
+              <div className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
+                method === "bank" 
+                  ? "border-blue-500 bg-blue-50" 
+                  : "border-gray-200 hover:border-gray-300"
+              }`}>
+                <div className="text-center">
+                  <div className="text-2xl mb-2">🏦</div>
+                  <span className="font-medium">Bank Transfer</span>
+                </div>
+              </div>
             </label>
           </div>
         </div>
 
-        <input
-          type="number"
-          placeholder="Amount (₹)"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full p-2 mb-4 border rounded"
-        />
+        <div className="mb-6">
+          <label className="block mb-2 font-semibold text-gray-700">Amount (₹)</label>
+          <input
+            type="number"
+            placeholder="Enter amount in INR"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
+          />
+        </div>
 
         {/* Conditional Fields */}
         {method === "upi" && (
-          <input
-            type="text"
-            placeholder="UPI ID"
-            value={upiId}
-            onChange={(e) => setUpiId(e.target.value)}
-            className="w-full p-2 mb-4 border rounded"
-          />
+          <div className="mb-6">
+            <label className="block mb-2 font-semibold text-gray-700">UPI ID</label>
+            <input
+              type="text"
+              placeholder="Enter your UPI ID (e.g., 1234567890@ybl)"
+              value={upiId}
+              onChange={(e) => setUpiId(e.target.value)}
+              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
+            />
+          </div>
         )}
 
         {method === "bank" && (
-          <>
-            <input
-              type="text"
-              placeholder="Account Holder Name"
-              value={accountHolder}
-              onChange={(e) => setAccountHolder(e.target.value)}
-              className="w-full p-2 mb-2 border rounded"
-            />
-            <input
-              type="text"
-              placeholder="Account Number"
-              value={accountNumber}
-              onChange={(e) => setAccountNumber(e.target.value)}
-              className="w-full p-2 mb-2 border rounded"
-            />
-            <input
-              type="text"
-              placeholder="IFSC Code"
-              value={ifsc}
-              onChange={(e) => setIfsc(e.target.value)}
-              className="w-full p-2 mb-4 border rounded"
-            />
-          </>
+          <div className="space-y-4 mb-6">
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700">Account Holder Name</label>
+              <input
+                type="text"
+                placeholder="Enter account holder name"
+                value={accountHolder}
+                onChange={(e) => setAccountHolder(e.target.value)}
+                className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700">Account Number</label>
+              <input
+                type="text"
+                placeholder="Enter account number"
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
+                className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 font-semibold text-gray-700">IFSC Code</label>
+              <input
+                type="text"
+                placeholder="Enter IFSC code"
+                value={ifsc}
+                onChange={(e) => setIfsc(e.target.value)}
+                className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
+              />
+            </div>
+          </div>
         )}
 
-        <div className="flex justify-end gap-4">
-          <button onClick={onClose} className="px-4 py-2 bg-gray-300 rounded">
-            Cancel
-          </button>
+        <div className="flex gap-4">
           <button
             onClick={handleWithdraw}
             disabled={processing}
-            className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+            className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg disabled:opacity-50"
           >
-            {processing ? "Processing..." : "Withdraw"}
+            {processing ? "Processing..." : "Sell USDT"}
           </button>
         </div>
       </div>
@@ -233,6 +284,18 @@ const WithdrawINRModal = ({ userId, onClose }) => {
           message="Authenticate to complete USDT sale"
         />
       )}
+
+      {/* Success Modal */}
+      <SuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          onClose();
+        }}
+        title="USDT Sale Successful!"
+        message="Your USDT has been sold and INR has been sent to your account."
+        details={successDetails}
+      />
     </div>
   );
 };

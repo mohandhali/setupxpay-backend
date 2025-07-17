@@ -231,16 +231,19 @@ const Dashboard = () => {
 </button>
 
         <button
-  onClick={() => setShowSellQR(true)}
-  className="bg-gray-700 text-white py-2 rounded-xl"
->
-  <FaQrcode className="inline" />
-</button>
+          onClick={() => setShowSellQR(true)}
+          className="bg-gray-700 text-white py-2 rounded-xl flex flex-col items-center justify-center"
+        >
+          <FaQrcode className="text-2xl mb-1" />
+          <span className="text-sm">Scan & Pay</span>
+        </button>
 
         <button
           onClick={() => setShowWithdrawModal(true)}
-          className="bg-blue-700 text-white py-2 rounded-xl"
-        >Sell USDT</button>
+          className="bg-blue-700 text-white py-2 rounded-xl flex flex-col items-center justify-center"
+        >
+          <span className="text-sm">Sell USDT</span>
+        </button>
       </div>
 
       {/* Modals */}

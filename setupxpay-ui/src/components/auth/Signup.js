@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import OneTimeSignModal from "../OneTimeSignModal";
+import WalletBackup from "../WalletBackup";
 
 const Signup = ({ onSuccess }) => {
   const [name, setName] = useState("");
@@ -10,6 +11,8 @@ const Signup = ({ onSuccess }) => {
   const [error, setError] = useState("");
   const [showOneTimeSign, setShowOneTimeSign] = useState(false);
   const [signupData, setSignupData] = useState(null);
+  const [showBackup, setShowBackup] = useState(false);
+  const [walletBackup, setWalletBackup] = useState(null);
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
@@ -24,9 +27,9 @@ const Signup = ({ onSuccess }) => {
       });
 
       const data = await res.json();
-      if (res.ok) {
-        setSignupData(data);
-        setShowOneTimeSign(true); // Show one-time sign permission
+      if (res.ok && data.wallet) {
+        setWalletBackup(data.wallet);
+        setShowBackup(true);
       } else {
         setError(data.error || "Signup failed");
       }
@@ -35,15 +38,22 @@ const Signup = ({ onSuccess }) => {
     }
   };
 
+  // After backup, show one-time sign modal (if needed), then complete
+  const handleBackupComplete = () => {
+    setShowBackup(false);
+    setShowOneTimeSign(true);
+    setSignupData({}); // dummy, for compatibility
+  };
+
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center px-4 py-8 overflow-hidden">
+    <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4 py-8 overflow-hidden">
       <motion.div
         className="w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-xl"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <h2 className="text-3xl font-extrabold text-blue-800 text-center mb-6">Create Your Wallet</h2>
+        <h2 className="text-3xl font-extrabold text-gray-800 text-center mb-6">Create Your Wallet</h2>
 
         {error && <p className="text-red-600 text-sm text-center mb-4">{error}</p>}
 
@@ -84,7 +94,7 @@ const Signup = ({ onSuccess }) => {
           <motion.button
             type="submit"
             whileTap={{ scale: 0.97 }}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-2.5 rounded-2xl transition-all shadow-md"
+            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-2.5 rounded-2xl transition-all shadow-md"
           >
             Sign Up
           </motion.button>
@@ -94,29 +104,34 @@ const Signup = ({ onSuccess }) => {
           Already have an account?{" "}
           <span
             onClick={() => navigate("/login")}
-            className="text-blue-700 font-semibold cursor-pointer hover:underline"
+            className="text-blue-600 font-semibold cursor-pointer hover:underline"
           >
             Login
           </span>
         </p>
       </motion.div>
 
-      {/* One-Time Sign Permission Modal */}
-      {showOneTimeSign && signupData && (
+      {/* Wallet Backup Modal */}
+      {showBackup && walletBackup && (
+        <WalletBackup
+          trc20={walletBackup.trc20}
+          bep20={walletBackup.bep20}
+          onComplete={handleBackupComplete}
+        />
+      )}
+
+      {/* One-Time Sign Permission Modal (optional, can be skipped or kept for future) */}
+      {showOneTimeSign && (
         <OneTimeSignModal
           onAccept={() => {
-            // Store private key temporarily for download
-            localStorage.setItem("privateKey", signupData.wallet.privateKey);
             setShowOneTimeSign(false);
             onSuccess(); // redirect to login
           }}
           onDecline={() => {
-            // Still complete signup but without one-time permission
-            localStorage.setItem("privateKey", signupData.wallet.privateKey);
             setShowOneTimeSign(false);
             onSuccess(); // redirect to login
           }}
-          walletAddress={signupData.wallet.address}
+          walletAddress={walletBackup?.trc20?.address}
         />
       )}
     </div>
