@@ -89,37 +89,44 @@ app.post("/signup", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // === TRC20 (Tron) Wallet Generation ===
+    // === Generate a single mnemonic (using Tron for BIP39 compatibility) ===
     const walletRes = await axios.get("https://api.tatum.io/v3/tron/wallet", {
       headers: { "x-api-key": TATUM_API_KEY },
     });
-    const { mnemonic, xpub } = walletRes.data;
-    const addressRes = await axios.get(`https://api.tatum.io/v3/tron/address/${xpub}/0`, {
+    const { mnemonic } = walletRes.data;
+
+    // === TRC20 (Tron) Wallet from mnemonic ===
+    const trc20XpubRes = await axios.post(
+      "https://api.tatum.io/v3/tron/generate/xpub",
+      { mnemonic },
+      { headers: { "x-api-key": TATUM_API_KEY } }
+    );
+    const trc20Xpub = trc20XpubRes.data.xpub;
+    const trc20AddressRes = await axios.get(`https://api.tatum.io/v3/tron/address/${trc20Xpub}/0`, {
       headers: { "x-api-key": TATUM_API_KEY },
     });
-    const address = addressRes.data.address;
-    // ✅ Get Private Key from Mnemonic
-    const privateKeyRes = await axios.post(
+    const trc20Address = trc20AddressRes.data.address;
+    const trc20PrivateKeyRes = await axios.post(
       "https://api.tatum.io/v3/tron/wallet/priv",
       { index: 0, mnemonic },
       { headers: { "x-api-key": TATUM_API_KEY } }
     );
-    const privateKey = privateKeyRes.data.key;
+    const trc20PrivateKey = trc20PrivateKeyRes.data.key;
 
-    // === BEP20 (BSC) Wallet Generation ===
-    const bep20WalletRes = await axios.get("https://api.tatum.io/v3/bsc/wallet", {
-      headers: { "x-api-key": TATUM_API_KEY },
-    });
-    const bep20Mnemonic = bep20WalletRes.data.mnemonic;
-    const bep20Xpub = bep20WalletRes.data.xpub;
+    // === BEP20 (BSC) Wallet from same mnemonic ===
+    const bep20XpubRes = await axios.post(
+      "https://api.tatum.io/v3/bsc/generate/xpub",
+      { mnemonic },
+      { headers: { "x-api-key": TATUM_API_KEY } }
+    );
+    const bep20Xpub = bep20XpubRes.data.xpub;
     const bep20AddressRes = await axios.get(`https://api.tatum.io/v3/bsc/address/${bep20Xpub}/0`, {
       headers: { "x-api-key": TATUM_API_KEY },
     });
     const bep20Address = bep20AddressRes.data.address;
-    // ✅ Get BEP20 Private Key from Mnemonic
     const bep20PrivateKeyRes = await axios.post(
       "https://api.tatum.io/v3/bsc/wallet/priv",
-      { index: 0, mnemonic: bep20Mnemonic },
+      { index: 0, mnemonic },
       { headers: { "x-api-key": TATUM_API_KEY } }
     );
     const bep20PrivateKey = bep20PrivateKeyRes.data.key;
@@ -128,12 +135,12 @@ app.post("/signup", async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      walletAddress: address,
-      xpub,
-      encryptedPrivateKey: encryptPrivateKey(privateKey), // TRC20
+      walletAddress: trc20Address,
+      xpub: trc20Xpub,
+      encryptedPrivateKey: encryptPrivateKey(trc20PrivateKey), // TRC20
       bep20Address,
       bep20EncryptedPrivateKey: encryptPrivateKey(bep20PrivateKey),
-      // Do NOT store mnemonic in DB
+      // No mnemonic stored in DB
     });
 
     await user.save();
@@ -142,7 +149,7 @@ app.post("/signup", async (req, res) => {
     await axios.post(
       "https://api.tatum.io/v3/tron/transaction",
       {
-        to: address,
+        to: trc20Address,
         amount: "1",
         fromPrivateKey: SENDER_PRIVATE_KEY,
       },
@@ -151,10 +158,11 @@ app.post("/signup", async (req, res) => {
 
     res.json({
       message: "Signup successful",
-      user: { id: user._id, name, email, walletAddress: address, bep20Address },
+      user: { id: user._id, name, email, walletAddress: trc20Address, bep20Address },
       wallet: {
-        trc20: { address, xpub, mnemonic, privateKey },
-        bep20: { address: bep20Address, xpub: bep20Xpub, mnemonic: bep20Mnemonic, privateKey: bep20PrivateKey },
+        mnemonic,
+        trc20: { address: trc20Address, xpub: trc20Xpub, privateKey: trc20PrivateKey },
+        bep20: { address: bep20Address, xpub: bep20Xpub, privateKey: bep20PrivateKey },
       },
     });
 

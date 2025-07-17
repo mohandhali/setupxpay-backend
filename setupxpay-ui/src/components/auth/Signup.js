@@ -114,6 +114,7 @@ const Signup = ({ onSuccess }) => {
       {/* Wallet Backup Modal */}
       {showBackup && walletBackup && (
         <WalletBackup
+          mnemonic={walletBackup.mnemonic}
           trc20={walletBackup.trc20}
           bep20={walletBackup.bep20}
           onComplete={handleBackupComplete}
