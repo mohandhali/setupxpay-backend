@@ -93,15 +93,9 @@ app.post("/signup", async (req, res) => {
     const walletRes = await axios.get("https://api.tatum.io/v3/tron/wallet", {
       headers: { "x-api-key": TATUM_API_KEY },
     });
-    const { mnemonic } = walletRes.data;
+    const { mnemonic, xpub: trc20Xpub } = walletRes.data;
 
     // === TRC20 (Tron) Wallet from mnemonic ===
-    const trc20XpubRes = await axios.post(
-      "https://api.tatum.io/v3/tron/generate/xpub",
-      { mnemonic },
-      { headers: { "x-api-key": TATUM_API_KEY } }
-    );
-    const trc20Xpub = trc20XpubRes.data.xpub;
     const trc20AddressRes = await axios.get(`https://api.tatum.io/v3/tron/address/${trc20Xpub}/0`, {
       headers: { "x-api-key": TATUM_API_KEY },
     });
@@ -114,12 +108,13 @@ app.post("/signup", async (req, res) => {
     const trc20PrivateKey = trc20PrivateKeyRes.data.key;
 
     // === BEP20 (BSC) Wallet from same mnemonic ===
-    const bep20XpubRes = await axios.post(
-      "https://api.tatum.io/v3/bsc/generate/xpub",
+    // Get xpub for BSC from mnemonic
+    const bscWalletRes = await axios.post(
+      "https://api.tatum.io/v3/bsc/wallet",
       { mnemonic },
       { headers: { "x-api-key": TATUM_API_KEY } }
     );
-    const bep20Xpub = bep20XpubRes.data.xpub;
+    const bep20Xpub = bscWalletRes.data.xpub;
     const bep20AddressRes = await axios.get(`https://api.tatum.io/v3/bsc/address/${bep20Xpub}/0`, {
       headers: { "x-api-key": TATUM_API_KEY },
     });
