@@ -232,7 +232,18 @@ router.get("/me", authMiddleware, async (req, res) => {
     const user = await User.findById(req.userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    res.json({ success: true, user });
+    // Only send public fields
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        walletAddress: user.walletAddress,
+        bep20Address: user.bep20Address,
+        // add other public fields if needed
+      }
+    });
   } catch (err) {
     res.status(500).json({ error: "Something went wrong" });
   }
