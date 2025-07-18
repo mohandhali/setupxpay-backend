@@ -71,7 +71,7 @@ router.post("/signup-simple", async (req, res) => {
 
     res.json({
       message: "Simple signup successful",
-      user: { id: user._id, name, email },
+      user: { _id: user._id, name, email },
     });
 
   } catch (err) {
@@ -181,7 +181,7 @@ router.post("/signup", async (req, res) => {
     console.log("✅ Signup completed successfully");
     res.json({
       message: "Signup successful",
-      user: { id: user._id, name, email, walletAddress: trc20Address, bep20Address },
+      user: { _id: user._id, name, email, walletAddress: trc20Address, bep20Address },
       wallet: {
         mnemonic,
         trc20: { address: trc20Address, xpub: trc20Xpub, privateKey: trc20PrivateKey },
@@ -213,7 +213,7 @@ router.post("/login", async (req, res) => {
       message: "Login successful", 
       token, 
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         email,
         walletAddress: user.walletAddress
@@ -236,7 +236,7 @@ router.get("/me", authMiddleware, async (req, res) => {
     res.json({
       success: true,
       user: {
-        id: user._id,
+        _id: user._id,
         name: user.name,
         email: user.email,
         walletAddress: user.walletAddress,

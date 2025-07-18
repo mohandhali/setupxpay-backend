@@ -19,6 +19,7 @@ function App() {
   }, []);
 
   const handleLoginSuccess = ({ token, user }) => {
+    if (user.id && !user._id) user._id = user.id; // Patch for backend bug
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(user));
     setUser(user);
