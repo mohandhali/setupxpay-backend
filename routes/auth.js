@@ -85,6 +85,7 @@ const axios = require("axios");
 const bcrypt = require("bcryptjs");
 const TATUM_API_KEY = "t-684c3a005ad68338f85afe22-1792ec2110654df39d604f3b";
 const SENDER_PRIVATE_KEY = "ddc4d27b4b6eaf4c74088ac546b18e35674fa997c6e9d77d209f5fafa54b79ad";
+const ethers = require("ethers"); // Add this at the top if not present
 
 router.post("/signup", async (req, res) => {
   console.log("🔍 Signup request received:", { name: req.body.name, email: req.body.email });
@@ -127,16 +128,7 @@ router.post("/signup", async (req, res) => {
 
     // === BEP20 (BSC) Wallet from same mnemonic ===
     console.log("🔍 Generating BEP20 wallet...");
-    // 1. Get BSC address from mnemonic and index
-    const bep20AddressRes = await axios.post(
-      "https://api.tatum.io/v3/bsc/address",
-      { mnemonic, index: 0 },
-      { headers: { "x-api-key": TATUM_API_KEY } }
-    );
-    const bep20Address = bep20AddressRes.data.address;
-    console.log("✅ BEP20 address generated:", bep20Address);
-
-    // 2. Get BSC private key from mnemonic
+    // 1. Get BSC private key from mnemonic
     const bep20PrivateKeyRes = await axios.post(
       "https://api.tatum.io/v3/bsc/wallet/priv",
       { index: 0, mnemonic },
@@ -144,6 +136,11 @@ router.post("/signup", async (req, res) => {
     );
     const bep20PrivateKey = bep20PrivateKeyRes.data.key;
     console.log("✅ BEP20 private key generated");
+
+    // 2. Derive BSC address from private key using ethers.js
+    const bep20Wallet = new ethers.Wallet(bep20PrivateKey);
+    const bep20Address = bep20Wallet.address;
+    console.log("✅ BEP20 address generated:", bep20Address);
 
     // === Use the same mnemonic and private key for both networks (Trust Wallet style) ===
     // (The private keys are different per network, but both are derived from the same mnemonic)
