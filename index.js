@@ -616,16 +616,24 @@ app.post("/withdraw", async (req, res) => {
   }
 
   try {
+    // Find user by wallet address (from)
+    const user = await User.findOne({ walletAddress: from });
+    if (!user || !user.encryptedPrivateKey) {
+      return res.status(404).json({ success: false, error: "User or private key not found" });
+    }
+    // Decrypt private key
+    const fromPrivateKey = decryptPrivateKey(user.encryptedPrivateKey);
+
     // Call Tatum TRC20 API
-    const response = await sendUSDTviaTatum(from, to, amount); // 🚀 Success here
+    const response = await sendUSDTviaTatum(fromPrivateKey, to, amount); // 🚀 Success here
 
     // ✅ Save to MongoDB transaction log
     await Transaction.create({
       type: "withdraw",
       amountInr: null,
       usdtAmount: amount,
-      wallet: to,
       from: from,
+      to: to,
       txId: response.txId,
       rate: null,
       fee: "1",                // ✅ Static for now, update dynamically if needed
