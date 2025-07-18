@@ -66,8 +66,9 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
-app.use(express.json()); // <-- Move this up
+// 👇 Place webhook raw middleware BEFORE express.json()
 app.use("/webhook", express.raw({ type: "application/json" }));
+app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/withdraw", withdrawRoutes);
 
