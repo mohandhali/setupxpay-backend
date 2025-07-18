@@ -125,18 +125,42 @@ router.post("/signup", async (req, res) => {
     const trc20PrivateKey = trc20PrivateKeyRes.data.key;
     console.log("✅ TRC20 private key generated");
 
-    // === BEP20 (BSC) Wallet - Temporarily disabled due to API issues ===
-    console.log("🔍 BEP20 wallet generation temporarily disabled");
-    const bep20Address = "BEP20_ADDRESS_PLACEHOLDER"; // We'll implement this later
-    const bep20PrivateKey = "BEP20_PRIVATE_KEY_PLACEHOLDER";
-    console.log("⚠️ BEP20 wallet generation skipped for now");
+    // === BEP20 (BSC) Wallet from same mnemonic ===
+    console.log("🔍 Generating BEP20 wallet...");
+    // 1. Get BSC xpub from mnemonic
+    const bscXpubRes = await axios.post(
+      "https://api.tatum.io/v3/bsc/wallet/xpub",
+      { mnemonic },
+      { headers: { "x-api-key": TATUM_API_KEY } }
+    );
+    const bep20Xpub = bscXpubRes.data.xpub;
+    console.log("✅ BEP20 xpub generated");
+
+    // 2. Get BSC address from xpub
+    const bep20AddressRes = await axios.get(`https://api.tatum.io/v3/bsc/address/${bep20Xpub}/0`, {
+      headers: { "x-api-key": TATUM_API_KEY },
+    });
+    const bep20Address = bep20AddressRes.data.address;
+    console.log("✅ BEP20 address generated:", bep20Address);
+
+    // 3. Get BSC private key from mnemonic
+    const bep20PrivateKeyRes = await axios.post(
+      "https://api.tatum.io/v3/bsc/wallet/priv",
+      { index: 0, mnemonic },
+      { headers: { "x-api-key": TATUM_API_KEY } }
+    );
+    const bep20PrivateKey = bep20PrivateKeyRes.data.key;
+    console.log("✅ BEP20 private key generated");
+
+    // === Use the same mnemonic and private key for both networks (Trust Wallet style) ===
+    // (The private keys are different per network, but both are derived from the same mnemonic)
 
     console.log("🔍 Saving user to database...");
     const user = new User({
       name,
       email,
       password: hashedPassword,
-      walletAddress: trc20Address,
+      walletAddress: trc20Address, // main address (TRC20)
       xpub: trc20Xpub,
       encryptedPrivateKey: encryptPrivateKey(trc20PrivateKey), // TRC20
       bep20Address,
@@ -171,7 +195,7 @@ router.post("/signup", async (req, res) => {
       wallet: {
         mnemonic,
         trc20: { address: trc20Address, xpub: trc20Xpub, privateKey: trc20PrivateKey },
-        bep20: { address: bep20Address, privateKey: bep20PrivateKey, note: "BEP20 support coming soon" },
+        bep20: { address: bep20Address, xpub: bep20Xpub, privateKey: bep20PrivateKey },
       },
     });
 

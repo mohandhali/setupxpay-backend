@@ -13,7 +13,7 @@ const Login = ({ onSuccess }) => {
     setError("");
 
     try {
-      const res = await fetch("https://setupxpay-backend.onrender.com/login", {
+      const res = await fetch("https://setupxpay-backend.onrender.com/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
@@ -52,14 +52,14 @@ const Login = ({ onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center px-4 py-8 overflow-hidden">
+    <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4 py-8 overflow-hidden">
       <motion.div
         className="w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-xl"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <h2 className="text-3xl font-extrabold text-blue-800 text-center mb-6">Welcome Back</h2>
+        <h2 className="text-3xl font-extrabold text-gray-800 text-center mb-6">Login to Your Wallet</h2>
 
         {error && <p className="text-red-600 text-sm text-center mb-4">{error}</p>}
 
@@ -70,7 +70,7 @@ const Login = ({ onSuccess }) => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="mt-1 w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-0"
               required
             />
           </div>
@@ -81,7 +81,7 @@ const Login = ({ onSuccess }) => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="mt-1 w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-0"
               required
             />
           </div>
@@ -89,7 +89,7 @@ const Login = ({ onSuccess }) => {
           <motion.button
             type="submit"
             whileTap={{ scale: 0.97 }}
-            className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-2.5 rounded-2xl transition-all shadow-md"
+            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-2.5 rounded-2xl transition-all shadow-md"
           >
             Login
           </motion.button>
