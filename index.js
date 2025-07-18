@@ -56,7 +56,11 @@ app.use(cors({
   origin: [
     "https://setupxpay-78bb7.web.app",
     "https://setupxpay.com",
-    "https://www.setupxpay.com"
+    "https://www.setupxpay.com",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
@@ -66,6 +70,25 @@ app.use(express.json()); // <-- Move this up
 app.use("/webhook", express.raw({ type: "application/json" }));
 app.use("/auth", authRoutes);
 app.use("/withdraw", withdrawRoutes);
+
+// ===== Health Check =====
+app.get("/health", (req, res) => {
+  res.json({ 
+    status: "OK", 
+    timestamp: new Date().toISOString(),
+    message: "SetupXPay Backend is running",
+    version: "1.0.0"
+  });
+});
+
+// ===== Test Auth Route =====
+app.get("/test-auth", (req, res) => {
+  res.json({ 
+    message: "Auth routes are accessible",
+    timestamp: new Date().toISOString(),
+    routes: ["/auth/signup", "/auth/login", "/auth/me"]
+  });
+});
 
 
 
