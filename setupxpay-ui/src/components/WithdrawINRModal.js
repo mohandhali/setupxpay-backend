@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import BiometricAuth from "./BiometricAuth";
 import SuccessModal from "./SuccessModal";
 
-const WithdrawINRModal = ({ userId, onClose }) => {
+const WithdrawINRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
     console.log("🧾 Passed userId to WithdrawINRModal:", userId);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("upi"); // "upi" or "bank"
@@ -14,6 +14,10 @@ const WithdrawINRModal = ({ userId, onClose }) => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successDetails, setSuccessDetails] = useState({});
   const [processing, setProcessing] = useState(false);
+  const [network, setNetwork] = useState("trc20");
+
+  const getAddressForNetwork = () => (network === "bep20" ? bep20Address : trc20Address);
+  const getFeeForNetwork = () => (network === "bep20" ? 1 : 5); // Example: lower fee for BEP20
 
   const handleWithdraw = async () => {
     if (!amount) {
@@ -25,6 +29,7 @@ const WithdrawINRModal = ({ userId, onClose }) => {
       userId,
       amount,
       bankDetails: {},
+      network,
     };
 
     if (method === "upi") {
@@ -58,6 +63,7 @@ const WithdrawINRModal = ({ userId, onClose }) => {
         userId,
         amount,
         bankDetails: {},
+        network,
       };
 
       if (method === "upi") {
@@ -74,7 +80,7 @@ const WithdrawINRModal = ({ userId, onClose }) => {
       const keyRes = await fetch("https://setupxpay-backend.onrender.com/get-user-private-key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ userId, network }),
       });
 
       const keyData = await keyRes.json();
@@ -90,12 +96,14 @@ const WithdrawINRModal = ({ userId, onClose }) => {
       // Step 2: Calculate USDT amount
       const rate = 95; // You can fetch this from API
       const platformFee = 1;
-      const trcFee = 5;
-      const netInr = parseFloat(amount) - platformFee - trcFee;
+      const fee = getFeeForNetwork();
+      const netInr = parseFloat(amount) - platformFee - fee;
       const usdtAmount = (netInr / rate).toFixed(2);
 
       // Step 3: Send USDT to SetupXPay liquidity pool
-      const setupxWalletAddress = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
+      const setupxWalletAddressTRC = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
+      const setupxWalletAddressBEP = "0x015B50b700853E29F331B2138721447FEC773f29";
+      const setupxWalletAddress = network === "bep20" ? setupxWalletAddressBEP : setupxWalletAddressTRC;
       
       const sendRes = await fetch("https://setupxpay-backend.onrender.com/send-usdt", {
         method: "POST",
@@ -105,6 +113,7 @@ const WithdrawINRModal = ({ userId, onClose }) => {
           to: setupxWalletAddress,
           amount: usdtAmount,
           userId: userId,
+          network,
         }),
       });
 
@@ -134,7 +143,9 @@ const WithdrawINRModal = ({ userId, onClose }) => {
           "Method": method === "upi" ? "UPI" : "Bank Transfer",
           "Recipient": method === "upi" ? upiId : `${accountHolder} (${accountNumber})`,
           "Transaction ID": sendData.txId,
-          "Rate": `₹${rate}`
+          "Rate": `₹${rate}`,
+          "Network": network.toUpperCase(),
+          "Wallet Address": getAddressForNetwork(),
         });
         setShowSuccessModal(true);
       } else {
@@ -160,6 +171,23 @@ const WithdrawINRModal = ({ userId, onClose }) => {
 
       {/* Content */}
       <div className="flex-1 p-6 overflow-auto">
+        {/* Network Selector */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-600 mb-1">Select Network</label>
+          <select
+            value={network}
+            onChange={(e) => setNetwork(e.target.value)}
+            className="w-full border px-4 py-2 rounded-lg text-sm outline-blue-600 mb-2"
+          >
+            <option value="trc20">TRC20 (Tron)</option>
+            <option value="bep20">BEP20 (BSC)</option>
+          </select>
+        </div>
+        {/* Show selected address */}
+        <div className="bg-gray-50 rounded-lg p-3 mb-4">
+          <span className="text-xs text-gray-500">Your {network.toUpperCase()} Address:</span>
+          <div className="font-mono text-xs break-all">{getAddressForNetwork()}</div>
+        </div>
 
         <div className="mb-6">
           <label className="block mb-3 font-semibold text-gray-700">Payment Method:</label>

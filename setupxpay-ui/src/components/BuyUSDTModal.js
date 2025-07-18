@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from "react";
 import { FaArrowLeft } from "react-icons/fa";
 
-const BuyUSDTModal = ({ walletAddress, onClose, onPaymentSuccess }) => {
+const BuyUSDTModal = ({ trc20Address, bep20Address, onClose, onPaymentSuccess }) => {
   const [amountInr, setAmountInr] = useState("");
   const [rate, setRate] = useState(null);
   const [fee, setFee] = useState(0);
   const [usdtQty, setUsdtQty] = useState("0");
   const [loading, setLoading] = useState(false);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+  const [network, setNetwork] = useState("trc20");
+
+  const getAddressForNetwork = () => (network === "bep20" ? bep20Address : trc20Address);
 
   useEffect(() => {
     const fetchRate = async () => {
@@ -48,6 +51,7 @@ const BuyUSDTModal = ({ walletAddress, onClose, onPaymentSuccess }) => {
     });
 
   const handlePay = async () => {
+    const walletAddress = getAddressForNetwork();
     if (!amountInr || !walletAddress) return alert("Amount or wallet missing");
     setLoading(true);
 
@@ -61,7 +65,7 @@ const BuyUSDTModal = ({ walletAddress, onClose, onPaymentSuccess }) => {
       const res = await fetch("https://setupxpay-backend.onrender.com/create-payment-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amountInr, walletAddress }),
+        body: JSON.stringify({ amountInr, walletAddress, network }),
       });
       const data = await res.json();
 
@@ -124,6 +128,25 @@ const BuyUSDTModal = ({ walletAddress, onClose, onPaymentSuccess }) => {
 
         {/* Content */}
         <div className="p-6 space-y-5 flex-1 overflow-auto">
+          {/* Network Selector */}
+          <div>
+            <label className="block text-sm font-medium text-gray-600 mb-1">Select Network</label>
+            <select
+              value={network}
+              onChange={(e) => setNetwork(e.target.value)}
+              className="w-full border px-4 py-2 rounded-lg text-sm outline-blue-600 mb-2"
+            >
+              <option value="trc20">TRC20 (Tron)</option>
+              <option value="bep20">BEP20 (BSC)</option>
+            </select>
+          </div>
+
+          {/* Show selected address */}
+          <div className="bg-gray-50 rounded-lg p-3 mb-2">
+            <span className="text-xs text-gray-500">Your {network.toUpperCase()} Address:</span>
+            <div className="font-mono text-xs break-all">{getAddressForNetwork()}</div>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-600 mb-1">
               Enter INR Amount

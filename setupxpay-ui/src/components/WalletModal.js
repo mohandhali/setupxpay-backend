@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import QRCode from "react-qr-code";
 import { FaArrowLeft } from "react-icons/fa";
 
-const WalletModal = ({ walletAddress, onClose, openBuyModal }) => {
+// Accept both addresses as props
+const WalletModal = ({ trc20Address, bep20Address, onClose, openBuyModal }) => {
   const [activeTab, setActiveTab] = useState("receive");
   const [amount, setAmount] = useState("");
   const [recipient, setRecipient] = useState("");
@@ -10,13 +11,15 @@ const WalletModal = ({ walletAddress, onClose, openBuyModal }) => {
   const [loading, setLoading] = useState(false);
   const [receiveNetwork, setReceiveNetwork] = useState("trc20");
 
+  // Get the correct address for the selected network
+  const getAddressForNetwork = (net) => {
+    if (net === "bep20") return bep20Address;
+    return trc20Address;
+  };
+
   const handleWithdraw = async () => {
     if (!amount || !recipient) {
       return alert("⚠️ Please enter all fields.");
-    }
-
-    if (network === "bep20") {
-      return alert("🚧 BEP20 withdrawals coming soon!");
     }
 
     try {
@@ -24,7 +27,12 @@ const WalletModal = ({ walletAddress, onClose, openBuyModal }) => {
       const res = await fetch("https://setupxpay-backend.onrender.com/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ from: walletAddress, to: recipient, amount, network }),
+        body: JSON.stringify({
+          from: getAddressForNetwork(network),
+          to: recipient,
+          amount,
+          network,
+        }),
       });
 
       const data = await res.json();
@@ -45,7 +53,6 @@ const WalletModal = ({ walletAddress, onClose, openBuyModal }) => {
   return (
     <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
       <div className="min-h-screen flex flex-col px-4 py-5">
-
         {/* Back Button */}
         <button
           onClick={onClose}
@@ -89,7 +96,7 @@ const WalletModal = ({ walletAddress, onClose, openBuyModal }) => {
                 className="w-full border rounded px-3 py-2 focus:outline-none"
               >
                 <option value="trc20">TRC20</option>
-                <option value="bep20" disabled>BEP20 (Coming Soon)</option>
+                <option value="bep20">BEP20</option>
               </select>
             </div>
 
@@ -98,16 +105,16 @@ const WalletModal = ({ walletAddress, onClose, openBuyModal }) => {
             </p>
 
             <div className="bg-white p-3 rounded-lg shadow-md mb-3">
-              <QRCode value={walletAddress} size={160} />
+              <QRCode value={getAddressForNetwork(receiveNetwork)} size={160} />
             </div>
 
-            <p className="text-xs text-gray-700 text-center break-all mb-3">{walletAddress}</p>
+            <p className="text-xs text-gray-700 text-center break-all mb-3">{getAddressForNetwork(receiveNetwork)}</p>
 
             {/* Copy & Share */}
             <div className="flex items-center justify-center gap-4 mb-6">
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(walletAddress);
+                  navigator.clipboard.writeText(getAddressForNetwork(receiveNetwork));
                   alert("Copied!");
                 }}
                 className="flex items-center gap-2 bg-gray-200 hover:bg-gray-300 text-black px-4 py-2 rounded-full text-sm"
@@ -119,7 +126,7 @@ const WalletModal = ({ walletAddress, onClose, openBuyModal }) => {
                   const shareData = {
                     title: "My USDT Wallet",
                     text: "Send USDT here:",
-                    url: walletAddress,
+                    url: getAddressForNetwork(receiveNetwork),
                   };
                   if (navigator.share) {
                     navigator.share(shareData).catch(() => alert("Sharing cancelled"));
@@ -157,7 +164,7 @@ const WalletModal = ({ walletAddress, onClose, openBuyModal }) => {
               className="w-full px-3 py-2 mb-4 border rounded"
             >
               <option value="trc20">TRC20 (1 USDT fee)</option>
-              <option value="bep20" disabled>BEP20 (Coming Soon)</option>
+              <option value="bep20">BEP20 (Low fee)</option>
             </select>
 
             <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Wallet Address</label>
@@ -179,13 +186,12 @@ const WalletModal = ({ walletAddress, onClose, openBuyModal }) => {
             />
 
             <button
-  onClick={handleWithdraw}
-  disabled={loading}
-  className="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg text-sm font-semibold"
->
-  {loading ? "Sending..." : "Send USDT"}
-</button>
-
+              onClick={handleWithdraw}
+              disabled={loading}
+              className="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg text-sm font-semibold"
+            >
+              {loading ? "Sending..." : "Send USDT"}
+            </button>
           </div>
         )}
       </div>

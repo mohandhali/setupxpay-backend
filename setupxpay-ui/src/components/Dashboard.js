@@ -249,7 +249,8 @@ const Dashboard = () => {
       {/* Modals */}
       {showBuyUSDT && (
   <BuyUSDTModal
-    walletAddress={user.walletAddress}
+    trc20Address={user.walletAddress}
+    bep20Address={user.bep20Address}
     onClose={() => setShowBuyUSDT(false)}
     onPaymentSuccess={() => {
       fetchBalance();
@@ -260,7 +261,8 @@ const Dashboard = () => {
 
       {showWalletModal && (
         <WalletModal
-         walletAddress={user.walletAddress}
+         trc20Address={user.walletAddress}
+         bep20Address={user.bep20Address}
          onClose={() => setShowWalletModal(false)}
          openBuyModal={() => {
           setShowWalletModal(false);
@@ -272,6 +274,8 @@ const Dashboard = () => {
      {showSellQR && (
   <SellUSDTQRModal
     userId={user._id}
+    trc20Address={user.walletAddress}
+    bep20Address={user.bep20Address}
     onClose={() => {setShowSellQR(false);
          }}
   />
@@ -280,6 +284,8 @@ const Dashboard = () => {
       {showWithdrawModal && (
         <WithdrawINRModal
           userId={user._id}
+          trc20Address={user.walletAddress}
+          bep20Address={user.bep20Address}
           onClose={() => {
             setShowWithdrawModal(false);
           }}
