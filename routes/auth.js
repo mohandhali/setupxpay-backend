@@ -127,23 +127,16 @@ router.post("/signup", async (req, res) => {
 
     // === BEP20 (BSC) Wallet from same mnemonic ===
     console.log("🔍 Generating BEP20 wallet...");
-    // 1. Get BSC xpub from mnemonic
-    const bscXpubRes = await axios.post(
-      "https://api.tatum.io/v3/bsc/wallet/xpub",
-      { mnemonic },
+    // 1. Get BSC address from mnemonic and index
+    const bep20AddressRes = await axios.post(
+      "https://api.tatum.io/v3/bsc/address",
+      { mnemonic, index: 0 },
       { headers: { "x-api-key": TATUM_API_KEY } }
     );
-    const bep20Xpub = bscXpubRes.data.xpub;
-    console.log("✅ BEP20 xpub generated");
-
-    // 2. Get BSC address from xpub
-    const bep20AddressRes = await axios.get(`https://api.tatum.io/v3/bsc/address/${bep20Xpub}/0`, {
-      headers: { "x-api-key": TATUM_API_KEY },
-    });
     const bep20Address = bep20AddressRes.data.address;
     console.log("✅ BEP20 address generated:", bep20Address);
 
-    // 3. Get BSC private key from mnemonic
+    // 2. Get BSC private key from mnemonic
     const bep20PrivateKeyRes = await axios.post(
       "https://api.tatum.io/v3/bsc/wallet/priv",
       { index: 0, mnemonic },
@@ -195,7 +188,7 @@ router.post("/signup", async (req, res) => {
       wallet: {
         mnemonic,
         trc20: { address: trc20Address, xpub: trc20Xpub, privateKey: trc20PrivateKey },
-        bep20: { address: bep20Address, xpub: bep20Xpub, privateKey: bep20PrivateKey },
+        bep20: { address: bep20Address, privateKey: bep20PrivateKey },
       },
     });
 
