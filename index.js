@@ -259,6 +259,12 @@ app.post("/send-usdt", async (req, res) => {
     return res.status(400).json({ success: false, error: "Missing input" });
   }
 
+  // Validate and convert amount
+  if (!amount || isNaN(amount) || Number(amount) <= 0) {
+    return res.status(400).json({ success: false, error: "Invalid amount" });
+  }
+  const amountStr = String(Number(amount));
+
   try {
     // Get user data
     const user = await User.findById(userId);
@@ -279,7 +285,6 @@ app.post("/send-usdt", async (req, res) => {
 
     if (trxBalance < 1) {
       console.log("⚠️ Low TRX balance, funding...");
-      
       // Fund TRX
       const trxRes = await axios.post("https://api.tatum.io/v3/tron/transaction", {
         to: senderAddress,
@@ -291,20 +296,16 @@ app.post("/send-usdt", async (req, res) => {
           "Content-Type": "application/json"
         }
       });
-
       console.log("✅ TRX funded:", trxRes.data.txId);
-      
       // Wait for TRX transaction to confirm
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
 
-    console.log("🚀 Starting USDT transfer...");
-    
     // Try with lower fee limit first
     try {
       const tx = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
         to,
-        amount,
+        amount: amountStr,
         fromPrivateKey,
         tokenAddress: TOKEN_ADDRESS,
         feeLimit: 100
@@ -314,16 +315,14 @@ app.post("/send-usdt", async (req, res) => {
           "Content-Type": "application/json"
         }
       });
-
       console.log("✅ USDT transfer successful:", tx.data.txId);
       return res.json({ success: true, txId: tx.data.txId });
     } catch (feeError) {
       console.log("⚠️ Low fee failed, trying with higher fee...");
-      
       // Try with higher fee limit
       const tx = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
         to,
-        amount,
+        amount: amountStr,
         fromPrivateKey,
         tokenAddress: TOKEN_ADDRESS,
         feeLimit: 500
@@ -333,13 +332,11 @@ app.post("/send-usdt", async (req, res) => {
           "Content-Type": "application/json"
         }
       });
-
       console.log("✅ USDT transfer successful with higher fee:", tx.data.txId);
       return res.json({ success: true, txId: tx.data.txId });
     }
   } catch (err) {
     console.error("❌ Send failed:", err.response?.data || err.message);
-    
     // Check if it's a resource insufficient error
     if (err.response?.data?.cause?.includes('Account resource insufficient')) {
       return res.status(500).json({ 
@@ -348,7 +345,6 @@ app.post("/send-usdt", async (req, res) => {
         details: err.response?.data 
       });
     }
-    
     return res.status(500).json({ 
       success: false, 
       error: err.response?.data?.message || err.message,
