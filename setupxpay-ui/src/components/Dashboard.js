@@ -287,9 +287,9 @@ const Dashboard = () => {
       )}
       {showSellQR && (
         <SellUSDTQRModal
-          userId={user._id}
-          trc20Address={user.walletAddress}
-          bep20Address={user.bep20Address}
+          userId={user?._id}
+          trc20Address={user?.walletAddress}
+          bep20Address={user?.bep20Address}
           onClose={() => {
             setShowSellQR(false);
           }}
@@ -297,12 +297,10 @@ const Dashboard = () => {
       )}
       {showWithdrawModal && (
         <WithdrawINRModal
-          userId={user._id}
-          trc20Address={user.walletAddress}
-          bep20Address={user.bep20Address}
-          onClose={() => {
-            setShowWithdrawModal(false);
-          }}
+          userId={user?._id}
+          trc20Address={user?.walletAddress}
+          bep20Address={user?.bep20Address}
+          onClose={() => setShowWithdrawModal(false)}
         />
       )}
       {showTransactionHistory && (
