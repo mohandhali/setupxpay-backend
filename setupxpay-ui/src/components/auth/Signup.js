@@ -13,20 +13,23 @@ const Signup = ({ onSuccess }) => {
   const [signupData, setSignupData] = useState(null);
   const [showBackup, setShowBackup] = useState(false);
   const [walletBackup, setWalletBackup] = useState(null);
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
-
+    setLoading(true);
+    console.log("[Signup] Submitting:", { name, email, password });
     try {
       const res = await fetch("https://setupxpay-backend.onrender.com/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
-
+      console.log("[Signup] Response status:", res.status);
       const data = await res.json();
+      console.log("[Signup] Response data:", data);
       if (res.ok && data.wallet) {
         setWalletBackup(data.wallet);
         setShowBackup(true);
@@ -35,6 +38,9 @@ const Signup = ({ onSuccess }) => {
       }
     } catch (err) {
       setError("Server error. Try again later.");
+      console.error("[Signup] Network or JS error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -94,9 +100,20 @@ const Signup = ({ onSuccess }) => {
           <motion.button
             type="submit"
             whileTap={{ scale: 0.97 }}
-            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-2.5 rounded-2xl transition-all shadow-md"
+            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium py-2.5 rounded-2xl transition-all shadow-md flex items-center justify-center gap-2"
+            disabled={loading}
           >
-            Sign Up
+            {loading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 mr-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                </svg>
+                Creating Wallet...
+              </>
+            ) : (
+              "Sign Up"
+            )}
           </motion.button>
         </form>
 
