@@ -53,6 +53,10 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
     };
   }, [step]);
 
+  useEffect(() => {
+    console.log("SellUSDTQRModal userId:", userId);
+  }, [userId]);
+
   const stopScanner = async () => {
     if (html5QrCodeRef.current) {
       try {
@@ -124,6 +128,12 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
   const handleBiometricSuccess = async () => {
     setShowBiometricAuth(false);
     setProcessing(true);
+
+    if (!userId) {
+      alert("User ID missing. Please re-login.");
+      setProcessing(false);
+      return;
+    }
 
     try {
       const cleanUpi = upiId.trim().match(/[a-zA-Z0-9.\-_]+@[a-zA-Z]+/)?.[0];

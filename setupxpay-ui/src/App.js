@@ -19,14 +19,14 @@ function App() {
   }, []);
 
   const handleLoginSuccess = ({ token, user }) => {
-  localStorage.setItem("token", token);
-  localStorage.setItem("user", JSON.stringify(user));
-  setUser(user);
-
-  setTimeout(() => {
-    navigate("/dashboard");
-  }, 0); // 👈 Let React finish render, then navigate
-};
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(user));
+    setUser(user);
+    console.log("Logged in user:", user); // Debug log
+    setTimeout(() => {
+      navigate("/dashboard");
+    }, 0); // 👈 Let React finish render, then navigate
+  };
 
 
   const handleLogout = () => {

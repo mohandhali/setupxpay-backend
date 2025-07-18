@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import BiometricAuth from "./BiometricAuth";
 import SuccessModal from "./SuccessModal";
 
@@ -15,6 +15,10 @@ const WithdrawINRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
   const [successDetails, setSuccessDetails] = useState({});
   const [processing, setProcessing] = useState(false);
   const [network, setNetwork] = useState("trc20");
+
+  useEffect(() => {
+    console.log("WithdrawINRModal userId:", userId);
+  }, [userId]);
 
   const getAddressForNetwork = () => (network === "bep20" ? bep20Address : trc20Address);
   const getFeeForNetwork = () => (network === "bep20" ? 1 : 5); // Example: lower fee for BEP20
@@ -57,6 +61,12 @@ const WithdrawINRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
   const handleBiometricSuccess = async () => {
     setShowBiometricAuth(false);
     setProcessing(true);
+
+    if (!userId) {
+      alert("User ID missing. Please re-login.");
+      setProcessing(false);
+      return;
+    }
 
     try {
       const payload = {

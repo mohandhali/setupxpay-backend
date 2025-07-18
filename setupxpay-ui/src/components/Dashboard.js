@@ -15,8 +15,7 @@ import SellUSDTQRModal from "./SellUSDTQRModal";
 
 
 
-const Dashboard = () => {
-  const [user, setUser] = useState(null);
+const Dashboard = ({ user }) => {
   const [balance, setBalance] = useState("0");
   const [buyRate, setBuyRate] = useState("-");
   const [sellRate, setSellRate] = useState("-");
@@ -32,38 +31,20 @@ const Dashboard = () => {
   
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        if (parsed && parsed.walletAddress) {
-          setUser(parsed);
-        } else {
-          navigate("/");
-        }
-      } catch {
-        navigate("/");
-      }
-    } else {
-      navigate("/");
-    }
-  }, [navigate]);
-
-  useEffect(() => {
     if (user?.walletAddress) {
       fetchBalance();
       fetchRates();
       fetchUSDTPrice();
 
-     // 🔄 Auto-refresh rates every 10 seconds
-    const interval = setInterval(() => {
-      fetchRates();
-      fetchUSDTPrice();
-    }, 10000);
+      // 🔄 Auto-refresh rates every 10 seconds
+      const interval = setInterval(() => {
+        fetchRates();
+        fetchUSDTPrice();
+      }, 10000);
 
-    return () => clearInterval(interval); // Cleanup on unmount
-  }
-}, [user]);
+      return () => clearInterval(interval); // Cleanup on unmount
+    }
+  }, [user]);
 
   const fetchBalance = async () => {
     try {
@@ -107,7 +88,22 @@ const Dashboard = () => {
     navigate("/"); // Redirect to landing page
   };
 
-  if (!user) return null;
+  if (!user || !user._id) {
+    // Optionally clear localStorage if user is invalid
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-white">
+        <h2 className="text-2xl font-bold text-blue-700 mb-4">Please log in again</h2>
+        <button
+          className="px-6 py-3 bg-blue-700 text-white rounded-lg font-semibold"
+          onClick={() => window.location.href = "/login"}
+        >
+          Go to Login
+        </button>
+      </div>
+    );
+  }
 
   // --- UI ---
   return (
@@ -247,14 +243,20 @@ const Dashboard = () => {
             Buy USDT
           </button>
           <button
-            onClick={() => setShowSellQR(true)}
+            onClick={() => {
+              console.log("Sell QR clicked, user:", user);
+              setShowSellQR(true);
+            }}
             className="flex flex-col items-center justify-center bg-blue-800 text-white rounded-2xl py-3 px-2 w-24 shadow hover:bg-blue-900 transition text-xs font-semibold"
           >
             <FaQrcode className="text-xl mb-1 text-white" />
             Scan & Pay
           </button>
           <button
-            onClick={() => setShowWithdrawModal(true)}
+            onClick={() => {
+              console.log("Sell USDT clicked, user:", user);
+              setShowWithdrawModal(true);
+            }}
             className="flex flex-col items-center justify-center bg-blue-800 text-white rounded-2xl py-3 px-2 w-24 shadow hover:bg-blue-900 transition text-xs font-semibold"
           >
             <FaExchangeAlt className="text-xl mb-1 text-white" />
@@ -285,21 +287,21 @@ const Dashboard = () => {
           }}
         />
       )}
-      {showSellQR && (
+      {showSellQR && user?._id && (
         <SellUSDTQRModal
-          userId={user?._id}
-          trc20Address={user?.walletAddress}
-          bep20Address={user?.bep20Address}
+          userId={user._id}
+          trc20Address={user.walletAddress}
+          bep20Address={user.bep20Address}
           onClose={() => {
             setShowSellQR(false);
           }}
         />
       )}
-      {showWithdrawModal && (
+      {showWithdrawModal && user?._id && (
         <WithdrawINRModal
-          userId={user?._id}
-          trc20Address={user?.walletAddress}
-          bep20Address={user?.bep20Address}
+          userId={user._id}
+          trc20Address={user.walletAddress}
+          bep20Address={user.bep20Address}
           onClose={() => setShowWithdrawModal(false)}
         />
       )}
