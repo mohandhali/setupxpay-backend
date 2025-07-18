@@ -479,9 +479,11 @@ app.post("/create-payment-link", async (req, res) => {
 
 // ===== Razorpay Webhook =====
 app.post("/webhook", async (req, res) => {
+  // req.body is a Buffer because of express.raw middleware
   const signature = req.headers["x-razorpay-signature"];
-  const rawBody = req.body.toString("utf8");
+  const rawBody = req.body; // Buffer
 
+  // Signature verification
   const expectedSignature = crypto
     .createHmac("sha256", RAZORPAY_WEBHOOK_SECRET)
     .update(rawBody)
@@ -494,7 +496,7 @@ app.post("/webhook", async (req, res) => {
 
   let event;
   try {
-    event = JSON.parse(rawBody);
+    event = JSON.parse(rawBody.toString("utf8"));
   } catch (err) {
     console.error("❌ Webhook JSON parse error:", err.message);
     return res.status(400).send("Invalid JSON");
