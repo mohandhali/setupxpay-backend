@@ -307,10 +307,17 @@ app.post("/send-usdt", async (req, res) => {
     // === Network-specific USDT transfer ===
     if (network === "bep20") {
       // BEP20 (BSC) USDT transfer
-      // USDT BEP20 contract address (mainnet): 0x55d398326f99059fF775485246999027B3197955
-      // For testnet, use the testnet contract address if needed
+      // Using mainnet BEP20 USDT contract address
       const BEP20_USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
+      
+      // Validate amount for BEP20
+      const amount = parseFloat(amountStr);
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ success: false, error: "Invalid amount for BEP20 transfer" });
+      }
+      
       try {
+        console.log(`🔄 Attempting BEP20 transfer: ${amountStr} USDT to ${to}`);
         const tx = await axios.post("https://api.tatum.io/v3/bsc/transaction", {
           to,
           currency: "USDT",
@@ -327,7 +334,29 @@ app.post("/send-usdt", async (req, res) => {
         return res.json({ success: true, txId: tx.data.txId });
       } catch (err) {
         console.error("❌ BEP20 USDT send failed:", err.response?.data || err.message);
-        return res.status(500).json({ success: false, error: err.response?.data?.message || err.message, details: err.response?.data });
+        
+        // Check for specific BEP20 errors
+        if (err.response?.data?.message?.includes('insufficient')) {
+          return res.status(500).json({ 
+            success: false, 
+            error: "Insufficient BNB for gas fees. Please ensure you have at least 0.002 BNB in your wallet.",
+            details: err.response?.data 
+          });
+        }
+        
+        if (err.response?.data?.message?.includes('invalid')) {
+          return res.status(400).json({ 
+            success: false, 
+            error: "Invalid transaction parameters. Please check the amount and address.",
+            details: err.response?.data 
+          });
+        }
+        
+        return res.status(500).json({ 
+          success: false, 
+          error: err.response?.data?.message || err.message, 
+          details: err.response?.data 
+        });
       }
     } else {
       // TRC20 (Tron) USDT transfer

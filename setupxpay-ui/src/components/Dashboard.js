@@ -12,6 +12,7 @@ import { MdClose } from "react-icons/md";
 import setupxpayLogo from "../assets/logo.png";
 import TransactionHistory from "./TransactionHistory";
 import SellUSDTQRModal from "./SellUSDTQRModal";
+import { CURRENT_CONFIG } from "../config/mainnet";
 
 
 
@@ -48,7 +49,7 @@ const Dashboard = ({ user }) => {
 
   const fetchBalance = async () => {
     try {
-      const res = await fetch(`https://setupxpay-backend.onrender.com/get-balance/${user.walletAddress}`);
+      const res = await fetch(`${CURRENT_CONFIG.BACKEND_URL}/get-balance/${user.walletAddress}`);
       const data = await res.json();
       setBalance(data.usdt || "0");
     } catch (err) {
@@ -58,7 +59,7 @@ const Dashboard = ({ user }) => {
 
   const fetchRates = async () => {
     try {
-      const res = await fetch("https://setupxpay-backend.onrender.com/rate");
+      const res = await fetch(`${CURRENT_CONFIG.BACKEND_URL}/rate`);
       const data = await res.json();
       setBuyRate(data?.buy || "-");
       setSellRate(data?.sell || "-");
@@ -85,7 +86,7 @@ const Dashboard = ({ user }) => {
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
-    navigate("/"); // Redirect to landing page
+    window.location.href = "/"; // Force redirect to landing page
   };
 
   if (!user || !user._id) {
@@ -121,6 +122,9 @@ const Dashboard = ({ user }) => {
                   ? user.email.split("@")[0]
                   : "User"}
             </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-600">Welcome back!</span>
           </div>
         </div>
 

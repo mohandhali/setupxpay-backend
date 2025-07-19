@@ -15,6 +15,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
   const bepFee = 1; // Example: lower fee for BEP20
   const [network, setNetwork] = useState("trc20");
   const [processing, setProcessing] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [showBiometricAuth, setShowBiometricAuth] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successDetails, setSuccessDetails] = useState({});
@@ -128,6 +129,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
   const handleBiometricSuccess = async () => {
     setShowBiometricAuth(false);
     setProcessing(true);
+    setLoadingMessage("Getting wallet access...");
 
     if (!userId) {
       alert("User ID missing. Please re-login.");
@@ -201,6 +203,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
       }
 
       // Step 2: Send USDT to SetupXPay liquidity pool
+      setLoadingMessage("Sending USDT to liquidity pool...");
       const sendRes = await fetch("https://setupxpay-backend.onrender.com/send-usdt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -220,6 +223,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
       }
 
       // Step 3: Send INR to merchant via Razorpay
+      setLoadingMessage("Processing INR payout...");
       const inrPayload = {
         userId,
         amount: amountInr,
@@ -338,9 +342,16 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
               <button
                 onClick={handleSell}
                 disabled={processing}
-                className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700"
+                className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50"
               >
-                {processing ? "Processing..." : "Sell USDT"}
+                {processing ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    {loadingMessage || "Processing..."}
+                  </div>
+                ) : (
+                  "Sell USDT"
+                )}
               </button>
             </div>
           )}
