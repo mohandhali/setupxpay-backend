@@ -253,9 +253,9 @@ app.post("/migrate-user-private-key", async (req, res) => {
 
 // ===== Manual USDT Transfer =====
 app.post("/send-usdt", async (req, res) => {
-  const { fromPrivateKey, to, amount, userId } = req.body;
+  const { fromPrivateKey, to, amount, userId, network } = req.body;
 
-  if (!fromPrivateKey || !to || !amount || !userId) {
+  if (!fromPrivateKey || !to || !amount || !userId || !network) {
     return res.status(400).json({ success: false, error: "Missing input" });
   }
 
@@ -272,68 +272,98 @@ app.post("/send-usdt", async (req, res) => {
       return res.status(400).json({ success: false, error: "User not found" });
     }
     
-    const senderAddress = user.walletAddress;
+    let senderAddress = user.walletAddress;
+    if (network === "bep20") {
+      senderAddress = user.bep20Address;
+    }
     console.log("🔍 Sender address:", senderAddress);
 
-    // Check TRX balance before transaction
-    const balanceRes = await axios.get(`https://api.tatum.io/v3/tron/account/${senderAddress}`, {
-      headers: { "x-api-key": TATUM_API_KEY }
-    });
-
-    const trxBalance = parseFloat(balanceRes.data.balance || "0");
-    console.log("🔍 TRX Balance:", trxBalance);
-
-    if (trxBalance < 1) {
-      console.log("⚠️ Low TRX balance, funding...");
-      // Fund TRX
-      const trxRes = await axios.post("https://api.tatum.io/v3/tron/transaction", {
-        to: senderAddress,
-        amount: "5", // Send more TRX
-        fromPrivateKey: SENDER_PRIVATE_KEY,
-      }, {
-        headers: {
-          "x-api-key": TATUM_API_KEY,
-          "Content-Type": "application/json"
-        }
+    // Check TRX balance for TRC20 only
+    if (network === "trc20") {
+      const balanceRes = await axios.get(`https://api.tatum.io/v3/tron/account/${senderAddress}`, {
+        headers: { "x-api-key": TATUM_API_KEY }
       });
-      console.log("✅ TRX funded:", trxRes.data.txId);
-      // Wait for TRX transaction to confirm
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      const trxBalance = parseFloat(balanceRes.data.balance || "0");
+      console.log("🔍 TRX Balance:", trxBalance);
+      if (trxBalance < 1) {
+        console.log("⚠️ Low TRX balance, funding...");
+        // Fund TRX
+        const trxRes = await axios.post("https://api.tatum.io/v3/tron/transaction", {
+          to: senderAddress,
+          amount: "5", // Send more TRX
+          fromPrivateKey: SENDER_PRIVATE_KEY,
+        }, {
+          headers: {
+            "x-api-key": TATUM_API_KEY,
+            "Content-Type": "application/json"
+          }
+        });
+        console.log("✅ TRX funded:", trxRes.data.txId);
+        // Wait for TRX transaction to confirm
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
     }
 
-    // Try with lower fee limit first
-    try {
-      const tx = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
-        to,
-        amount: amountStr,
-        fromPrivateKey,
-        tokenAddress: TOKEN_ADDRESS,
-        feeLimit: 100
-      }, {
-        headers: {
-          "x-api-key": TATUM_API_KEY,
-          "Content-Type": "application/json"
-        }
-      });
-      console.log("✅ USDT transfer successful:", tx.data.txId);
-      return res.json({ success: true, txId: tx.data.txId });
-    } catch (feeError) {
-      console.log("⚠️ Low fee failed, trying with higher fee...");
-      // Try with higher fee limit
-      const tx = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
-        to,
-        amount: amountStr,
-        fromPrivateKey,
-        tokenAddress: TOKEN_ADDRESS,
-        feeLimit: 500
-      }, {
-        headers: {
-          "x-api-key": TATUM_API_KEY,
-          "Content-Type": "application/json"
-        }
-      });
-      console.log("✅ USDT transfer successful with higher fee:", tx.data.txId);
-      return res.json({ success: true, txId: tx.data.txId });
+    // === Network-specific USDT transfer ===
+    if (network === "bep20") {
+      // BEP20 (BSC) USDT transfer
+      // USDT BEP20 contract address (mainnet): 0x55d398326f99059fF775485246999027B3197955
+      // For testnet, use the testnet contract address if needed
+      const BEP20_USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
+      try {
+        const tx = await axios.post("https://api.tatum.io/v3/bsc/transaction", {
+          to,
+          currency: "USDT",
+          amount: amountStr,
+          fromPrivateKey,
+          contractAddress: BEP20_USDT_CONTRACT
+        }, {
+          headers: {
+            "x-api-key": TATUM_API_KEY,
+            "Content-Type": "application/json"
+          }
+        });
+        console.log("✅ BEP20 USDT transfer successful:", tx.data.txId);
+        return res.json({ success: true, txId: tx.data.txId });
+      } catch (err) {
+        console.error("❌ BEP20 USDT send failed:", err.response?.data || err.message);
+        return res.status(500).json({ success: false, error: err.response?.data?.message || err.message, details: err.response?.data });
+      }
+    } else {
+      // TRC20 (Tron) USDT transfer
+      try {
+        const tx = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
+          to,
+          amount: amountStr,
+          fromPrivateKey,
+          tokenAddress: TOKEN_ADDRESS,
+          feeLimit: 100
+        }, {
+          headers: {
+            "x-api-key": TATUM_API_KEY,
+            "Content-Type": "application/json"
+          }
+        });
+        console.log("✅ USDT transfer successful:", tx.data.txId);
+        return res.json({ success: true, txId: tx.data.txId });
+      } catch (feeError) {
+        console.log("⚠️ Low fee failed, trying with higher fee...");
+        // Try with higher fee limit
+        const tx = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
+          to,
+          amount: amountStr,
+          fromPrivateKey,
+          tokenAddress: TOKEN_ADDRESS,
+          feeLimit: 500
+        }, {
+          headers: {
+            "x-api-key": TATUM_API_KEY,
+            "Content-Type": "application/json"
+          }
+        });
+        console.log("✅ USDT transfer successful with higher fee:", tx.data.txId);
+        return res.json({ success: true, txId: tx.data.txId });
+      }
     }
   } catch (err) {
     console.error("❌ Send failed:", err.response?.data || err.message);
