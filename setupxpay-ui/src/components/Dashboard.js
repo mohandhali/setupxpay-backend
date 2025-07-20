@@ -37,17 +37,17 @@ const Dashboard = ({ user }) => {
   const [kycStatus, setKycStatus] = useState(user?.kycStatus || "pending"); // pending, verified, rejected
   const [kycStep, setKycStep] = useState(1); // 1: Manual Details, 2: Document Upload, 3: Processing, 4: Verified
   const [kycData, setKycData] = useState({
-    fullName: user?.kycData?.fullName || "",
-    dateOfBirth: user?.kycData?.dateOfBirth || "",
-    panNumber: user?.kycData?.panNumber || "",
-    aadharNumber: user?.kycData?.aadharNumber || "",
-    address: user?.kycData?.address || "",
-    city: user?.kycData?.city || "",
-    state: user?.kycData?.state || "",
-    country: user?.kycData?.country || "India",
-    pincode: user?.kycData?.pincode || "",
-    documentType: user?.kycData?.documentType || "aadhar",
-    documentNumber: user?.kycData?.documentNumber || ""
+    fullName: "",
+    dateOfBirth: "",
+    panNumber: "",
+    aadharNumber: "",
+    address: "",
+    city: "",
+    state: "",
+    country: "India",
+    pincode: "",
+    documentType: "aadhar",
+    documentNumber: ""
   });
   
   // Document upload states
@@ -199,68 +199,13 @@ const Dashboard = ({ user }) => {
       return;
     }
 
-    // Validate file size (5MB limit)
+    // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       alert("File size must be less than 5MB");
       return;
     }
 
     setPanCardFile(file);
-    setExtractionError("");
-    setIsExtracting(true);
-
-    // Simulate OCR extraction with file analysis
-    setTimeout(() => {
-      try {
-        // Analyze the uploaded file to simulate OCR
-        const fileName = file.name.toLowerCase();
-        const fileSize = file.size;
-        
-        // Check if file seems to be a valid document image
-        if (fileSize < 50000) { // Less than 50KB might be too small
-          throw new Error("Image file seems too small. Please ensure the PAN card image is clear and complete.");
-        }
-        
-        // Simulate OCR processing based on file characteristics
-        let extractedData = {
-          fullName: "",
-          dateOfBirth: "",
-          panNumber: ""
-        };
-
-        // Try to extract data based on file properties
-        if (fileName.includes("pan") || fileName.includes("card") || fileName.includes("id")) {
-          // File name suggests it's a PAN card
-          extractedData = {
-            fullName: "Data extracted from PAN card",
-            dateOfBirth: "Date extracted from PAN card", 
-            panNumber: "PAN number extracted from card"
-          };
-        } else {
-          // Generic document - try to extract anyway
-          extractedData = {
-            fullName: "Name extracted from document",
-            dateOfBirth: "Date extracted from document",
-            panNumber: "PAN extracted from document"
-          };
-        }
-
-        setKycData({
-          ...kycData,
-          ...extractedData
-        });
-        setKycStep(2);
-        setIsExtracting(false);
-        
-        // Show success message
-        alert("✅ Document processed successfully!\n\nPlease review the extracted information in the next step and correct any errors if needed.");
-        
-      } catch (error) {
-        setExtractionError("Could not extract data from the uploaded image. Please ensure the PAN card is clearly visible and try again.");
-        setIsExtracting(false);
-        setPanCardFile(null);
-      }
-    }, 3000); // Increased time to simulate real OCR processing
   };
 
   const handleAadharUpload = (event, side) => {
@@ -274,7 +219,7 @@ const Dashboard = ({ user }) => {
       return;
     }
 
-    // Validate file size (5MB limit)
+    // Validate file size (5MB max)
     if (file.size > 5 * 1024 * 1024) {
       alert("File size must be less than 5MB");
       return;
@@ -284,51 +229,6 @@ const Dashboard = ({ user }) => {
       setAadharFrontFile(file);
     } else {
       setAadharBackFile(file);
-    }
-    
-    // If both sides uploaded, simulate address extraction
-    if (side === 'back' || aadharFrontFile) {
-      setIsExtracting(true);
-      setExtractionError("");
-      
-      setTimeout(() => {
-        try {
-          // Analyze the uploaded files to simulate OCR
-          const frontFile = side === 'front' ? file : aadharFrontFile;
-          const backFile = side === 'back' ? file : aadharBackFile;
-          
-          // Check if files seem to be valid document images
-          if (frontFile && frontFile.size < 50000) {
-            throw new Error("Front image seems too small. Please ensure the Aadhar card front is clear and complete.");
-          }
-          if (backFile && backFile.size < 50000) {
-            throw new Error("Back image seems too small. Please ensure the Aadhar card back is clear and complete.");
-          }
-          
-          // Simulate OCR processing based on file characteristics
-          const extractedData = {
-            aadharNumber: "Aadhar number extracted from card",
-            address: "Address extracted from Aadhar card",
-            city: "City extracted from Aadhar card",
-            state: "State extracted from Aadhar card",
-            district: "District extracted from Aadhar card"
-          };
-          
-          setKycData({
-            ...kycData,
-            ...extractedData
-          });
-          setKycStep(3);
-          setIsExtracting(false);
-          
-          // Show success message
-          alert("✅ Aadhar card processed successfully!\n\nPlease review the extracted information in the next step and correct any errors if needed.");
-          
-        } catch (error) {
-          setExtractionError("Could not extract data from the uploaded Aadhar card images. Please ensure both sides are clearly visible and try again.");
-          setIsExtracting(false);
-        }
-      }, 3000); // Increased time to simulate real OCR processing
     }
   };
 
@@ -853,23 +753,6 @@ const Dashboard = ({ user }) => {
                     <p className="text-sm text-gray-600">Please enter your personal information</p>
                   </div>
                   
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <div className="text-sm text-blue-800 font-medium mb-2">📸 Tips for better extraction:</div>
-                    <ul className="text-xs text-blue-700 space-y-1">
-                      <li>• Ensure good lighting and clear image</li>
-                      <li>• Avoid shadows and reflections</li>
-                      <li>• Make sure all text is readable</li>
-                      <li>• Keep the card flat and in focus</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                    <div className="text-sm text-yellow-800 font-medium mb-2">⚠️ Note:</div>
-                    <p className="text-xs text-yellow-700">
-                      Document extraction is currently in demo mode. For accurate data entry, we recommend using the manual entry option below.
-                    </p>
-                  </div>
-
                   <div className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
@@ -879,7 +762,7 @@ const Dashboard = ({ user }) => {
                           value={kycData.fullName}
                           onChange={(e) => setKycData({...kycData, fullName: e.target.value})}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          placeholder="Enter your full name as on PAN card"
+                          placeholder="Enter your full name"
                         />
                       </div>
                       <div>
@@ -922,11 +805,11 @@ const Dashboard = ({ user }) => {
                         onChange={(e) => setKycData({...kycData, address: e.target.value})}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         rows="3"
-                        placeholder="Enter your complete address as on Aadhar card"
+                        placeholder="Enter your complete address"
                       />
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
                         <input
@@ -1009,23 +892,6 @@ const Dashboard = ({ user }) => {
                     <p className="text-sm text-gray-600">Please upload a clear photo of your PAN card and Aadhar card</p>
                   </div>
                   
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-                    <div className="text-sm text-green-800 font-medium mb-2">📸 Tips for better extraction:</div>
-                    <ul className="text-xs text-green-700 space-y-1">
-                      <li>• Upload both front and back sides of your Aadhar card</li>
-                      <li>• Ensure address details are visible on back</li>
-                      <li>• Avoid covering any important information</li>
-                      <li>• Use good lighting for clear photos</li>
-                    </ul>
-                  </div>
-
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                    <div className="text-sm text-yellow-800 font-medium mb-2">⚠️ Note:</div>
-                    <p className="text-xs text-yellow-700">
-                      Document extraction is currently in demo mode. For accurate data entry, we recommend using the manual entry option below.
-                    </p>
-                  </div>
-
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">

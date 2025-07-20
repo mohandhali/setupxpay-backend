@@ -13,6 +13,8 @@ const app = express();
 const PORT = 5000;
 const withdrawRoutes = require("./routes/withdraw");
 const Transaction = require("./models/Transaction");
+const multer = require("multer");
+const path = require("path");
 
 
 // ===== Config =====
@@ -22,6 +24,47 @@ const SENDER_PRIVATE_KEY = "ddc4d27b4b6eaf4c74088ac546b18e35674fa997c6e9d77d209f
 const TOKEN_ADDRESS = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
 const RAZORPAY_WEBHOOK_SECRET = "setupx_secret_key";
 const ENCRYPTION_KEY = "setupxpay_encryption_key_2024"; // For encrypting private keys
+
+// Multer setup for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, "uploads"));
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_'));
+  }
+});
+const upload = multer({ storage });
+
+// Serve uploads statically
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// KYC file upload endpoint
+app.post("/kyc/upload", upload.fields([
+  { name: "panCard", maxCount: 1 },
+  { name: "aadharFront", maxCount: 1 },
+  { name: "aadharBack", maxCount: 1 }
+]), async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ success: false, error: "User ID required" });
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ success: false, error: "User not found" });
+    const files = req.files;
+    const docUrls = {};
+    if (files.panCard) docUrls.panCard = `/uploads/${files.panCard[0].filename}`;
+    if (files.aadharFront) docUrls.aadharFront = `/uploads/${files.aadharFront[0].filename}`;
+    if (files.aadharBack) docUrls.aadharBack = `/uploads/${files.aadharBack[0].filename}`;
+    user.kycDocuments = { ...user.kycDocuments, ...docUrls };
+    await user.save();
+    res.json({ success: true, kycDocuments: user.kycDocuments });
+  } catch (err) {
+    console.error("❌ KYC file upload error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to upload documents" });
+  }
+});
+
 
 // ===== MongoDB Connection =====
 mongoose.connect("mongodb+srv://setupxadmin:WavMOQBBj3I2IcW9@cluster0.em2tu28.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
@@ -795,6 +838,70 @@ app.get("/kyc/status/:userId", async (req, res) => {
   } catch (err) {
     console.error("❌ KYC status fetch error:", err.message);
     res.status(500).json({ success: false, error: "Failed to fetch KYC status" });
+  }
+});
+
+const jwt = require("jsonwebtoken");
+
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || "setupxpay_admin_secret";
+
+// Admin login endpoint
+app.post("/admin/login", (req, res) => {
+  const { username, password } = req.body;
+  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+    const token = jwt.sign({ admin: true }, ADMIN_JWT_SECRET, { expiresIn: "2h" });
+    return res.json({ success: true, token });
+  }
+  res.status(401).json({ success: false, error: "Invalid credentials" });
+});
+
+// Admin auth middleware
+function adminAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ success: false, error: "No token provided" });
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, ADMIN_JWT_SECRET);
+    if (!decoded.admin) throw new Error();
+    next();
+  } catch {
+    return res.status(401).json({ success: false, error: "Invalid or expired token" });
+  }
+}
+
+// ===== Admin: Get All KYC Users (protected) =====
+app.get("/kyc/all", adminAuth, async (req, res) => {
+  try {
+    const users = await User.find({ kycData: { $exists: true }, kycStatus: { $ne: null } });
+    res.json({ success: true, users });
+  } catch (err) {
+    console.error("❌ KYC admin fetch error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to fetch KYC users" });
+  }
+});
+
+// ===== Update KYC Status (protected) =====
+app.post("/kyc/update-status", adminAuth, async (req, res) => {
+  try {
+    const { userId, status } = req.body;
+    if (!userId || !status) {
+      return res.status(400).json({ success: false, error: "User ID and status required" });
+    }
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+    user.kycStatus = status;
+    if (status === "verified") {
+      user.kycVerifiedAt = new Date();
+    }
+    await user.save();
+    res.json({ success: true, message: `KYC ${status} successfully`, kycStatus: status });
+  } catch (err) {
+    console.error("❌ KYC status update error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to update KYC status" });
   }
 });
 

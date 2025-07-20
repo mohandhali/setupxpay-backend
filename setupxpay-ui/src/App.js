@@ -7,6 +7,7 @@ import Dashboard from "./components/Dashboard";
 import LandingPage from "./components/LandingPage";
 import PaymentSuccess from "./components/PaymentSuccess"; // ✅ New success screen
 import Referrals from "./components/Referrals";
+import AdminKYCPanel from "./components/AdminKYCPanel";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -91,6 +92,7 @@ function App() {
             )
           } 
         />
+        <Route path="/admin/kyc" element={<AdminKYCPanel />} />
       </Routes>
     </div>
   );
