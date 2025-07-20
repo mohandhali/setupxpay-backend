@@ -841,8 +841,6 @@ app.get("/kyc/status/:userId", async (req, res) => {
   }
 });
 
-const jwt = require("jsonwebtoken");
-
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "admin";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || "setupxpay_admin_secret";
