@@ -11,6 +11,28 @@ const userSchema = new mongoose.Schema({
   bep20EncryptedPrivateKey: String, // BEP20 encrypted private key
   biometricEnabled: { type: Boolean, default: false },
   oneTimeSigned: { type: Boolean, default: false }, // Track if user has signed one-time permission
+  
+  // KYC Fields
+  kycStatus: { type: String, enum: ["pending", "verified", "rejected"], default: "pending" },
+  kycData: {
+    fullName: String,
+    dateOfBirth: String,
+    panNumber: String,
+    aadharNumber: String,
+    address: String,
+    city: String,
+    state: String,
+    country: { type: String, default: "India" },
+    pincode: String
+  },
+  kycDocuments: {
+    panCard: String,
+    aadharFront: String,
+    aadharBack: String
+  },
+  kycSubmittedAt: Date,
+  kycVerifiedAt: Date,
+  
   createdAt: { type: Date, default: Date.now },
 });
 

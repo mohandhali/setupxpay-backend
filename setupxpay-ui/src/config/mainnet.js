@@ -15,9 +15,9 @@ export const MAINNET_CONFIG = {
     BEP20: {
       name: "BEP20 (BSC)",
       symbol: "BEP20", 
-      contract: "0x55d398326f99059fF775485246999027B3197955", // Mainnet BEP20 USDT
-      explorer: "https://bscscan.com/tx/",
-      rpc: "https://bsc-dataseed.binance.org"
+      contract: "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd", // Testnet BEP20 USDT
+      explorer: "https://testnet.bscscan.com/tx/",
+      rpc: "https://data-seed-prebsc-1-s1.binance.org:8545"
     }
   },
   

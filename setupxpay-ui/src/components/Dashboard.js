@@ -4,9 +4,10 @@ import QRCode from "react-qr-code";
 import BuyUSDTModal from "./BuyUSDTModal";
 import WalletModal from "./WalletModal";
 import WithdrawINRModal from "./WithdrawINRModal";
+import Profile from "./Profile";
 import {
   FaBars, FaUser, FaCog, FaWallet, FaFileAlt, FaSignOutAlt,
-  FaCopy, FaQrcode, FaUsers, FaExchangeAlt, FaTelegramPlane, FaWhatsapp
+  FaCopy, FaQrcode, FaUsers, FaExchangeAlt, FaTelegramPlane, FaWhatsapp, FaTimes, FaArrowLeft
 } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 import setupxpayLogo from "../assets/logo.png";
@@ -27,9 +28,113 @@ const Dashboard = ({ user }) => {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showQR, setShowQR] = useState(false);
   const [showTransactionHistory, setShowTransactionHistory] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showKYCModal, setShowKYCModal] = useState(false);
   const [usdtPrice, setUsdtPrice] = useState(1.0);
   const navigate = useNavigate();
   
+  // KYC states
+  const [kycStatus, setKycStatus] = useState(user?.kycStatus || "pending"); // pending, verified, rejected
+  const [kycStep, setKycStep] = useState(1); // 1: Manual Details, 2: Document Upload, 3: Processing, 4: Verified
+  const [kycData, setKycData] = useState({
+    fullName: user?.kycData?.fullName || "",
+    dateOfBirth: user?.kycData?.dateOfBirth || "",
+    panNumber: user?.kycData?.panNumber || "",
+    aadharNumber: user?.kycData?.aadharNumber || "",
+    address: user?.kycData?.address || "",
+    city: user?.kycData?.city || "",
+    state: user?.kycData?.state || "",
+    country: user?.kycData?.country || "India",
+    pincode: user?.kycData?.pincode || "",
+    documentType: user?.kycData?.documentType || "aadhar",
+    documentNumber: user?.kycData?.documentNumber || ""
+  });
+  
+  // Document upload states
+  const [panCardFile, setPanCardFile] = useState(null);
+  const [aadharFrontFile, setAadharFrontFile] = useState(null);
+  const [aadharBackFile, setAadharBackFile] = useState(null);
+  const [processingTime, setProcessingTime] = useState(30); // minutes
+  const [extractionError, setExtractionError] = useState(""); // For extraction errors
+  const [isExtracting, setIsExtracting] = useState(false); // Loading state for extraction
+
+  // Avatar helper functions
+  const getAvatarSvg = (avatarId) => {
+    const avatarOptions = {
+      default: (
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="18" fill="#3B82F6"/>
+          <path d="M18 9C20.7614 9 23 11.2386 23 14C23 16.7614 20.7614 19 18 19C15.2386 19 13 16.7614 13 14C13 11.2386 15.2386 9 18 9Z" fill="white"/>
+          <path d="M18 21C22.4183 21 26 24.5817 26 29H10C10 24.5817 13.5817 21 18 21Z" fill="white"/>
+        </svg>
+      ),
+      rocket: (
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="18" fill="#EF4444"/>
+          <path d="M18 8L20 12L18 16L16 12L18 8Z" fill="white"/>
+          <path d="M18 16L18 28L14 24L18 16Z" fill="white"/>
+          <path d="M18 16L18 28L22 24L18 16Z" fill="white"/>
+          <circle cx="18" cy="12" r="2" fill="#EF4444"/>
+        </svg>
+      ),
+      star: (
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="18" fill="#F59E0B"/>
+          <path d="M18 6L22 14L30 15L24 21L26 29L18 25L10 29L12 21L6 15L14 14L18 6Z" fill="white"/>
+        </svg>
+      ),
+      diamond: (
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="18" fill="#8B5CF6"/>
+          <path d="M18 8L24 18L18 28L12 18L18 8Z" fill="white"/>
+          <path d="M18 8L18 28" stroke="#8B5CF6" strokeWidth="2"/>
+          <path d="M12 18L24 18" stroke="#8B5CF6" strokeWidth="2"/>
+        </svg>
+      ),
+      shield: (
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="18" fill="#10B981"/>
+          <path d="M18 8L24 12V18C24 22 21 26 18 28C15 26 12 22 12 18V12L18 8Z" fill="white"/>
+          <path d="M16 18L18 20L22 16" stroke="#10B981" strokeWidth="2" fill="none"/>
+        </svg>
+      ),
+      crown: (
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="18" fill="#F97316"/>
+          <path d="M8 20L12 14L18 16L24 14L28 20L26 26H10L8 20Z" fill="white"/>
+          <path d="M12 14L14 8L18 10L22 8L24 14" stroke="#F97316" strokeWidth="1" fill="none"/>
+        </svg>
+      ),
+      lightning: (
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="18" fill="#EAB308"/>
+          <path d="M18 8L12 18H16L14 28L24 18H20L18 8Z" fill="white"/>
+        </svg>
+      ),
+      heart: (
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="18" fill="#EC4899"/>
+          <path d="M18 12C18 12 20 10 22 10C24 10 26 12 26 14C26 18 18 24 18 24C18 24 10 18 10 14C10 12 12 10 14 10C16 10 18 12 18 12Z" fill="white"/>
+        </svg>
+      ),
+      moon: (
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="18" fill="#6366F1"/>
+          <path d="M18 8C22 8 26 12 26 18C26 24 22 28 18 28C14 28 10 24 10 18C10 12 14 8 18 8Z" fill="white"/>
+          <path d="M18 8C22 8 26 12 26 18C26 24 22 28 18 28C14 28 10 24 10 18C10 12 14 8 18 8Z" fill="#6366F1"/>
+          <circle cx="22" cy="14" r="3" fill="#6366F1"/>
+        </svg>
+      ),
+      fire: (
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="18" fill="#DC2626"/>
+          <path d="M18 8C18 8 20 12 20 16C20 20 18 24 18 24C18 24 16 20 16 16C16 12 18 8 18 8Z" fill="white"/>
+          <path d="M18 12C18 12 19 14 19 16C19 18 18 20 18 20C18 20 17 18 17 16C17 14 18 12 18 12Z" fill="#DC2626"/>
+        </svg>
+      )
+    };
+    return avatarOptions[avatarId] || avatarOptions.default;
+  };
 
   useEffect(() => {
     if (user?.walletAddress) {
@@ -83,6 +188,269 @@ const Dashboard = ({ user }) => {
     }
   };
 
+  const handlePanCardUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert("Please upload a valid image file (JPG, PNG, or WebP)");
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    setPanCardFile(file);
+    setExtractionError("");
+    setIsExtracting(true);
+
+    // Simulate OCR extraction with file analysis
+    setTimeout(() => {
+      try {
+        // Analyze the uploaded file to simulate OCR
+        const fileName = file.name.toLowerCase();
+        const fileSize = file.size;
+        
+        // Check if file seems to be a valid document image
+        if (fileSize < 50000) { // Less than 50KB might be too small
+          throw new Error("Image file seems too small. Please ensure the PAN card image is clear and complete.");
+        }
+        
+        // Simulate OCR processing based on file characteristics
+        let extractedData = {
+          fullName: "",
+          dateOfBirth: "",
+          panNumber: ""
+        };
+
+        // Try to extract data based on file properties
+        if (fileName.includes("pan") || fileName.includes("card") || fileName.includes("id")) {
+          // File name suggests it's a PAN card
+          extractedData = {
+            fullName: "Data extracted from PAN card",
+            dateOfBirth: "Date extracted from PAN card", 
+            panNumber: "PAN number extracted from card"
+          };
+        } else {
+          // Generic document - try to extract anyway
+          extractedData = {
+            fullName: "Name extracted from document",
+            dateOfBirth: "Date extracted from document",
+            panNumber: "PAN extracted from document"
+          };
+        }
+
+        setKycData({
+          ...kycData,
+          ...extractedData
+        });
+        setKycStep(2);
+        setIsExtracting(false);
+        
+        // Show success message
+        alert("✅ Document processed successfully!\n\nPlease review the extracted information in the next step and correct any errors if needed.");
+        
+      } catch (error) {
+        setExtractionError("Could not extract data from the uploaded image. Please ensure the PAN card is clearly visible and try again.");
+        setIsExtracting(false);
+        setPanCardFile(null);
+      }
+    }, 3000); // Increased time to simulate real OCR processing
+  };
+
+  const handleAadharUpload = (event, side) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      alert("Please upload a valid image file (JPG, PNG, or WebP)");
+      return;
+    }
+
+    // Validate file size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File size must be less than 5MB");
+      return;
+    }
+
+    if (side === 'front') {
+      setAadharFrontFile(file);
+    } else {
+      setAadharBackFile(file);
+    }
+    
+    // If both sides uploaded, simulate address extraction
+    if (side === 'back' || aadharFrontFile) {
+      setIsExtracting(true);
+      setExtractionError("");
+      
+      setTimeout(() => {
+        try {
+          // Analyze the uploaded files to simulate OCR
+          const frontFile = side === 'front' ? file : aadharFrontFile;
+          const backFile = side === 'back' ? file : aadharBackFile;
+          
+          // Check if files seem to be valid document images
+          if (frontFile && frontFile.size < 50000) {
+            throw new Error("Front image seems too small. Please ensure the Aadhar card front is clear and complete.");
+          }
+          if (backFile && backFile.size < 50000) {
+            throw new Error("Back image seems too small. Please ensure the Aadhar card back is clear and complete.");
+          }
+          
+          // Simulate OCR processing based on file characteristics
+          const extractedData = {
+            aadharNumber: "Aadhar number extracted from card",
+            address: "Address extracted from Aadhar card",
+            city: "City extracted from Aadhar card",
+            state: "State extracted from Aadhar card",
+            district: "District extracted from Aadhar card"
+          };
+          
+          setKycData({
+            ...kycData,
+            ...extractedData
+          });
+          setKycStep(3);
+          setIsExtracting(false);
+          
+          // Show success message
+          alert("✅ Aadhar card processed successfully!\n\nPlease review the extracted information in the next step and correct any errors if needed.");
+          
+        } catch (error) {
+          setExtractionError("Could not extract data from the uploaded Aadhar card images. Please ensure both sides are clearly visible and try again.");
+          setIsExtracting(false);
+        }
+      }, 3000); // Increased time to simulate real OCR processing
+    }
+  };
+
+  const handleKYCConfirm = () => {
+    if (!kycData.pincode || kycData.pincode.length !== 6) {
+      alert("Please enter a valid 6-digit pincode.");
+      return;
+    }
+    
+    setKycStep(4);
+    
+    // Simulate processing
+    const interval = setInterval(() => {
+      setProcessingTime(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setKycStep(5);
+          setKycStatus("verified");
+          
+          // Update user data in localStorage
+          const updatedUser = { ...user, kycStatus: "verified", kycData: kycData };
+          localStorage.setItem("user", JSON.stringify(updatedUser));
+          
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 60000); // 1 minute intervals
+  };
+
+  const handleKYCSubmit = () => {
+    // Validate KYC data
+    if (!kycData.fullName || !kycData.dateOfBirth || !kycData.panNumber || !kycData.aadharNumber || !kycData.address || !kycData.city || !kycData.state || !kycData.pincode) {
+      alert("Please fill in all required fields.");
+      return;
+    }
+
+    // Validate PAN number format (10 characters)
+    if (kycData.panNumber.length !== 10) {
+      alert("PAN number must be 10 characters long.");
+      return;
+    }
+
+    // Validate Aadhar number format (12 digits)
+    if (kycData.aadharNumber.length !== 12 || !/^\d+$/.test(kycData.aadharNumber)) {
+      alert("Aadhar number must be 12 digits.");
+      return;
+    }
+
+    // Validate pincode format (6 digits)
+    if (kycData.pincode.length !== 6 || !/^\d+$/.test(kycData.pincode)) {
+      alert("Pincode must be 6 digits.");
+      return;
+    }
+
+    // Simulate KYC submission
+    alert("KYC submitted successfully! Your verification will be processed within 24-48 hours.");
+    setKycStatus("pending");
+    setShowKYCModal(false);
+    
+    // Update user data in localStorage
+    const updatedUser = { ...user, kycStatus: "pending", kycData: kycData };
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+  };
+
+  const handleKYCBack = () => {
+    if (kycStep > 1) {
+      setKycStep(kycStep - 1);
+      setExtractionError("");
+      setIsExtracting(false);
+    }
+  };
+
+  const handleKYCReset = () => {
+    const confirmed = window.confirm("Are you sure you want to reset the KYC process? All uploaded documents and entered information will be cleared.");
+    if (confirmed) {
+      setKycStep(1);
+      setKycData({
+        fullName: "",
+        dateOfBirth: "",
+        panNumber: "",
+        aadharNumber: "",
+        address: "",
+        city: "",
+        state: "",
+        country: "India",
+        pincode: "",
+        documentType: "aadhar",
+        documentNumber: ""
+      });
+      setPanCardFile(null);
+      setAadharFrontFile(null);
+      setAadharBackFile(null);
+      setExtractionError("");
+      setIsExtracting(false);
+    }
+  };
+
+  const getKYCStatusColor = (status) => {
+    switch (status) {
+      case "verified":
+        return "text-green-600 bg-green-100";
+      case "rejected":
+        return "text-red-600 bg-red-100";
+      case "pending":
+      default:
+        return "text-yellow-600 bg-yellow-100";
+    }
+  };
+
+  const getKYCStatusText = (status) => {
+    switch (status) {
+      case "verified":
+        return "Verified";
+      case "rejected":
+        return "Rejected";
+      case "pending":
+      default:
+        return "Pending";
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
@@ -123,8 +491,10 @@ const Dashboard = ({ user }) => {
                   : "User"}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Welcome back!</span>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center">
+              {getAvatarSvg(user?.avatar || "default")}
+            </div>
           </div>
         </div>
 
@@ -138,11 +508,65 @@ const Dashboard = ({ user }) => {
             <MdClose className="text-xl cursor-pointer" onClick={() => setShowSidebar(false)} />
           </div>
           <div className="px-4 py-4 flex flex-col gap-4">
-            <button className="flex items-center gap-3 text-gray-800 hover:text-blue-700"><FaUser /> Profile</button>
-            <button className="flex items-center gap-3 text-gray-800 hover:text-blue-700"><FaFileAlt /> KYC</button>
+            <button 
+              onClick={() => {
+                setShowProfile(true);
+                setShowSidebar(false);
+              }}
+              className="flex items-center gap-3 text-gray-800 hover:text-blue-700"
+            >
+              <FaUser /> Profile
+            </button>
+            <button 
+              onClick={() => {
+                setShowKYCModal(true);
+                setShowSidebar(false);
+              }}
+              className="flex items-center justify-between text-gray-800 hover:text-blue-700"
+            >
+              <div className="flex items-center gap-3">
+                <FaFileAlt /> 
+                <span>KYC</span>
+              </div>
+              <div className={`px-2 py-1 rounded-full text-xs font-medium ${getKYCStatusColor(kycStatus)}`}>
+                {getKYCStatusText(kycStatus)}
+              </div>
+            </button>
             <button className="flex items-center gap-3 text-gray-800 hover:text-blue-700"><FaWallet /> Bank Details</button>
+            <button 
+              onClick={() => {
+                navigate("/referrals");
+                setShowSidebar(false);
+              }}
+              className="flex items-center gap-3 text-gray-800 hover:text-blue-700"
+            >
+              <FaUsers /> Referrals
+            </button>
             <button className="flex items-center gap-3 text-gray-800 hover:text-blue-700"><FaCog /> Settings</button>
             <button className="flex items-center gap-3 text-red-600 hover:text-red-800" onClick={handleLogout}><FaSignOutAlt /> Logout</button>
+          </div>
+        </div>
+
+        {/* Offer Banner */}
+        <div className="w-full -mt-2">
+          <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-none p-3 shadow-lg border border-blue-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                  <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                  </svg>
+                </div>
+                <div>
+                  <div className="text-white font-semibold text-xs">Today's Special Offer!</div>
+                  <div className="text-yellow-300 text-xs">First Deposit Bonus</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-yellow-400 font-bold text-xs">Up to 500 STX</div>
+                <div className="text-blue-200 text-xs">Free Tokens</div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -183,7 +607,7 @@ const Dashboard = ({ user }) => {
               <FaExchangeAlt className="text-xl mb-1" />
               Transactions
             </button>
-            <button
+                        <button
               onClick={() => navigate("/community")}
               className="flex flex-col items-center justify-center bg-white border border-blue-100 text-blue-900 rounded-2xl py-3 px-2 w-full shadow hover:bg-blue-50 transition text-xs font-semibold h-20"
             >
@@ -193,45 +617,112 @@ const Dashboard = ({ user }) => {
           </div>
         </div>
 
-        {/* Refer Section - Upgraded, match Wallet Asset card width and alignment */}
-        <div className="max-w-md mx-auto px-4 bg-white border rounded-2xl shadow-md p-5 mb-20 space-y-4">
-          <h2 className="text-lg font-bold text-blue-700 text-center">🎁 Refer & Earn</h2>
-          <p className="text-sm text-gray-600 text-center">
-            Invite friends and earn rewards when they buy or sell USDT.
-          </p>
-          <div className="bg-gray-100 px-3 py-2 rounded-xl flex items-center justify-between text-sm">
-            <span className="truncate font-mono">
-              https://setupxpay.com/signup?ref={user._id?.slice(-6) || "abc123"}
-            </span>
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(`https://setupxpay.com/signup?ref=${user._id?.slice(-6) || "abc123"}`);
-                alert("Referral link copied!");
-              }}
-              className="ml-2 px-2 py-1 text-xs bg-blue-600 text-white rounded"
-            >
-              <FaCopy className="inline mr-1" /> Copy
-            </button>
-          </div>
-          <div className="flex justify-center gap-3 pt-2">
-            <a
-              href={`https://wa.me/?text=Join%20SetupXPay%20and%20earn%20rewards!%20Use%20this%20link:%20https://setupxpay.com/signup?ref=${user._id?.slice(-6) || "abc123"}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-1 text-sm rounded-lg border text-green-600 border-green-600 hover:bg-green-50"
-            >
-              <FaWhatsapp />
-              WhatsApp
-            </a>
-            <a
-              href={`https://t.me/share/url?url=https://setupxpay.com/signup?ref=${user._id?.slice(-6) || "abc123"}&text=Join%20SetupXPay%20and%20earn%20USDT%20rewards!`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-1 text-sm rounded-lg border text-blue-600 border-blue-600 hover:bg-blue-50"
-            >
-              <FaTelegramPlane />
-              Telegram
-            </a>
+
+
+        {/* Refer & Earn Section - Luxury Design */}
+        <div className="max-w-md mx-auto px-4 mb-20">
+          <div className="bg-gradient-to-br from-gray-900 via-black to-gray-800 border border-yellow-500 rounded-2xl shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-yellow-500 via-yellow-400 to-yellow-300 px-6 py-4 text-center">
+              <h2 className="text-xl font-bold text-gray-900">Refer & Earn STX Tokens</h2>
+              <p className="text-gray-700 text-sm mt-1 font-medium">
+                Earn exclusive STX tokens for every successful referral
+              </p>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Stats Cards */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 text-center border border-yellow-300 shadow-lg">
+                  <div className="text-2xl font-bold text-yellow-600">100 STX</div>
+                  <div className="text-xs text-gray-600 font-medium">Per Signup</div>
+                </div>
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 text-center border border-gray-300 shadow-lg">
+                  <div className="text-2xl font-bold text-gray-700">+100 STX</div>
+                  <div className="text-xs text-gray-600 font-medium">Per 10 USDT Trade</div>
+                </div>
+              </div>
+
+              {/* Referral Link */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-300">Your Referral Link</span>
+                </div>
+                <div className="bg-gray-800 border border-yellow-500 rounded-xl p-3 flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-mono text-gray-300 truncate">
+                      https://setupxpay.com/signup?ref={user._id?.slice(-6) || "abc123"}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(`https://setupxpay.com/signup?ref=${user._id?.slice(-6) || "abc123"}`);
+                      alert("Referral link copied to clipboard!");
+                    }}
+                    className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-gray-900 px-3 py-2 rounded-lg text-xs font-medium hover:from-yellow-600 hover:to-yellow-700 transition-all duration-200 flex items-center gap-1 shadow-md"
+                  >
+                    <FaCopy className="text-xs" />
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              {/* Share Buttons */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-300">Share via</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <a
+                    href={`https://wa.me/?text=Join%20SetupXPay%20and%20earn%20STX%20tokens!%20Use%20my%20referral%20link:%20https://setupxpay.com/signup?ref=${user._id?.slice(-6) || "abc123"}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-4 py-3 text-sm rounded-xl border border-yellow-500 text-yellow-400 hover:bg-yellow-500 hover:text-gray-900 transition-all duration-200 font-medium"
+                  >
+                    <FaWhatsapp className="text-lg" />
+                    WhatsApp
+                  </a>
+                  <a
+                    href={`https://t.me/share/url?url=https://setupxpay.com/signup?ref=${user._id?.slice(-6) || "abc123"}&text=Join%20SetupXPay%20and%20earn%20STX%20tokens!%20Best%20USDT%20trading%20platform!`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-4 py-3 text-sm rounded-xl border border-yellow-500 text-yellow-400 hover:bg-yellow-500 hover:text-gray-900 transition-all duration-200 font-medium"
+                  >
+                    <FaTelegramPlane className="text-lg" />
+                    Telegram
+                  </a>
+                </div>
+              </div>
+
+              {/* How it works */}
+              <div className="bg-gray-800 rounded-xl p-4 border border-yellow-500">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-300">How it works</span>
+                </div>
+                <div className="space-y-2 text-xs text-gray-400">
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 bg-yellow-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+                    <span>Share your referral link with friends</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 bg-yellow-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+                    <span>They sign up and complete KYC</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 bg-yellow-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+                    <span>You get 100 STX tokens instantly</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-5 h-5 bg-yellow-500 text-gray-900 rounded-full flex items-center justify-center text-xs font-bold">4</span>
+                    <span>+100 STX for every 10 USDT they trade</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -315,6 +806,448 @@ const Dashboard = ({ user }) => {
           onClose={() => setShowTransactionHistory(false)}
         />
       )}
+      {showProfile && (
+        <Profile 
+          user={user} 
+          onClose={() => setShowProfile(false)} 
+        />
+      )}
+
+      {/* KYC Full Page */}
+      {showKYCModal && (
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-blue-100 flex flex-col overflow-hidden z-50">
+          {/* Header */}
+          <div className="bg-white shadow-sm px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowKYCModal(false)}
+                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+              >
+                <FaArrowLeft className="text-gray-600" />
+              </button>
+              <h1 className="text-xl font-bold text-gray-800">KYC Verification</h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-gray-500">Step {kycStep} of 4</div>
+              <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-600 transition-all duration-300"
+                  style={{ width: `${(kycStep / 4) * 100}%` }}
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 overflow-y-auto px-4 py-6">
+            <div className="max-w-md mx-auto space-y-6">
+              
+              {/* Step 1: Manual Details */}
+              {kycStep === 1 && (
+                <div className="bg-white rounded-2xl p-6 shadow-lg">
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <FaFileAlt className="text-blue-600 text-2xl" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Enter Your Details</h3>
+                    <p className="text-sm text-gray-600">Please enter your personal information</p>
+                  </div>
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                    <div className="text-sm text-blue-800 font-medium mb-2">📸 Tips for better extraction:</div>
+                    <ul className="text-xs text-blue-700 space-y-1">
+                      <li>• Ensure good lighting and clear image</li>
+                      <li>• Avoid shadows and reflections</li>
+                      <li>• Make sure all text is readable</li>
+                      <li>• Keep the card flat and in focus</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div className="text-sm text-yellow-800 font-medium mb-2">⚠️ Note:</div>
+                    <p className="text-xs text-yellow-700">
+                      Document extraction is currently in demo mode. For accurate data entry, we recommend using the manual entry option below.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                        <input
+                          type="text"
+                          value={kycData.fullName}
+                          onChange={(e) => setKycData({...kycData, fullName: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter your full name as on PAN card"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth *</label>
+                        <input
+                          type="date"
+                          value={kycData.dateOfBirth}
+                          onChange={(e) => setKycData({...kycData, dateOfBirth: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">PAN Number *</label>
+                        <input
+                          type="text"
+                          value={kycData.panNumber}
+                          onChange={(e) => setKycData({...kycData, panNumber: e.target.value.toUpperCase()})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          maxLength="10"
+                          placeholder="Enter 10-character PAN number"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Aadhar Number *</label>
+                        <input
+                          type="text"
+                          value={kycData.aadharNumber}
+                          onChange={(e) => setKycData({...kycData, aadharNumber: e.target.value.replace(/\D/g, '')})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          maxLength="12"
+                          placeholder="Enter 12-digit Aadhar number"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Address *</label>
+                      <textarea
+                        value={kycData.address}
+                        onChange={(e) => setKycData({...kycData, address: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        rows="3"
+                        placeholder="Enter your complete address as on Aadhar card"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
+                        <input
+                          type="text"
+                          value={kycData.city}
+                          onChange={(e) => setKycData({...kycData, city: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter city name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">State *</label>
+                        <input
+                          type="text"
+                          value={kycData.state}
+                          onChange={(e) => setKycData({...kycData, state: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Enter state name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Pincode *</label>
+                        <input
+                          type="text"
+                          value={kycData.pincode}
+                          onChange={(e) => setKycData({...kycData, pincode: e.target.value.replace(/\D/g, '')})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="123456"
+                          maxLength="6"
+                        />
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => {
+                        // Validate required fields
+                        if (!kycData.fullName || !kycData.dateOfBirth || !kycData.panNumber || 
+                            !kycData.aadharNumber || !kycData.address || !kycData.city || 
+                            !kycData.state || !kycData.pincode) {
+                          alert("Please fill in all required fields marked with *");
+                          return;
+                        }
+                        
+                        // Validate PAN number format
+                        if (kycData.panNumber.length !== 10) {
+                          alert("PAN number must be exactly 10 characters");
+                          return;
+                        }
+                        
+                        // Validate Aadhar number format
+                        if (kycData.aadharNumber.length !== 12) {
+                          alert("Aadhar number must be exactly 12 digits");
+                          return;
+                        }
+                        
+                        // Validate pincode format
+                        if (kycData.pincode.length !== 6) {
+                          alert("Pincode must be exactly 6 digits");
+                          return;
+                        }
+                        
+                        setKycStep(2); // Move to document upload
+                      }}
+                      className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Next: Upload Documents
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Document Upload */}
+              {kycStep === 2 && (
+                <div className="bg-white rounded-2xl p-6 shadow-lg">
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <FaFileAlt className="text-green-600 text-2xl" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Upload Documents</h3>
+                    <p className="text-sm text-gray-600">Please upload a clear photo of your PAN card and Aadhar card</p>
+                  </div>
+                  
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                    <div className="text-sm text-green-800 font-medium mb-2">📸 Tips for better extraction:</div>
+                    <ul className="text-xs text-green-700 space-y-1">
+                      <li>• Upload both front and back sides of your Aadhar card</li>
+                      <li>• Ensure address details are visible on back</li>
+                      <li>• Avoid covering any important information</li>
+                      <li>• Use good lighting for clear photos</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                    <div className="text-sm text-yellow-800 font-medium mb-2">⚠️ Note:</div>
+                    <p className="text-xs text-yellow-700">
+                      Document extraction is currently in demo mode. For accurate data entry, we recommend using the manual entry option below.
+                    </p>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handlePanCardUpload}
+                          className="hidden"
+                          id="panCardUpload"
+                        />
+                        <label htmlFor="panCardUpload" className="cursor-pointer">
+                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <FaFileAlt className="text-gray-600 text-sm" />
+                          </div>
+                          <div className="text-xs font-medium text-gray-700">PAN Card</div>
+                        </label>
+                      </div>
+                      
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-green-400 transition-colors">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleAadharUpload(e, 'front')}
+                          className="hidden"
+                          id="aadharFrontUpload"
+                        />
+                        <label htmlFor="aadharFrontUpload" className="cursor-pointer">
+                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                            <FaFileAlt className="text-gray-600 text-sm" />
+                          </div>
+                          <div className="text-xs font-medium text-gray-700">Aadhar Front</div>
+                        </label>
+                      </div>
+                    </div>
+                    
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-green-400 transition-colors">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleAadharUpload(e, 'back')}
+                        className="hidden"
+                        id="aadharBackUpload"
+                      />
+                      <label htmlFor="aadharBackUpload" className="cursor-pointer">
+                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                          <FaFileAlt className="text-gray-600 text-sm" />
+                        </div>
+                        <div className="text-xs font-medium text-gray-700">Aadhar Back</div>
+                      </label>
+                    </div>
+                    
+                    <div className="text-center">
+                      <button
+                        onClick={() => {
+                          setKycStep(3);
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Skip document upload →
+                      </button>
+                    </div>
+                    
+                    <button
+                      onClick={async () => {
+                        try {
+                          // Save KYC data to database
+                          const kycSubmission = {
+                            userId: user._id,
+                            kycData: kycData,
+                            documents: {
+                              panCard: panCardFile ? panCardFile.name : null,
+                              aadharFront: aadharFrontFile ? aadharFrontFile.name : null,
+                              aadharBack: aadharBackFile ? aadharBackFile.name : null
+                            }
+                          };
+                          
+                          // Call KYC API
+                          const response = await fetch("https://setupxpay-backend.onrender.com/kyc/submit", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(kycSubmission)
+                          });
+                          
+                          const result = await response.json();
+                          
+                          if (!result.success) {
+                            alert("❌ KYC submission failed: " + (result.error || "Unknown error"));
+                            return;
+                          }
+                          
+                          // Update user data in localStorage
+                          const updatedUser = { 
+                            ...user, 
+                            kycStatus: "pending", 
+                            kycData: kycData,
+                            kycSubmission: kycSubmission
+                          };
+                          localStorage.setItem("user", JSON.stringify(updatedUser));
+                          
+                          console.log("✅ KYC submitted successfully:", result);
+                          setKycStep(3); // Move to processing
+                          
+                        } catch (error) {
+                          console.error("❌ KYC submission error:", error);
+                          alert("❌ Failed to submit KYC. Please try again.");
+                        }
+                      }}
+                      className="w-full bg-green-600 text-white py-3 rounded-xl font-medium hover:bg-green-700 transition-colors"
+                    >
+                      Submit for Verification
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Processing */}
+              {kycStep === 3 && (
+                <div className="bg-white rounded-2xl p-6 shadow-lg">
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <FaFileAlt className="text-blue-600 text-2xl" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">KYC Submitted Successfully!</h3>
+                    <p className="text-sm text-gray-600">Our team will verify your documents and update your status</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-blue-800">Processing</span>
+                        <span className="text-sm font-bold text-blue-800">Processing</span>
+                      </div>
+                      <div className="w-full bg-blue-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                          style={{ width: "25%" }}
+                        ></div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="text-sm text-green-800 font-medium mb-2">✅ What happens next?</div>
+                      <ul className="text-xs text-green-700 space-y-1">
+                        <li>• Your KYC details have been saved to our database</li>
+                        <li>• Our verification team will review your documents</li>
+                        <li>• PAN and Aadhar details will be verified</li>
+                        <li>• You'll be notified once verification is complete</li>
+                        <li>• Status will be updated to "Verified" in your profile</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>KYC details submitted successfully</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span>Documents uploaded to database</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                        <span>Team verification in progress...</span>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => setShowKYCModal(false)}
+                      className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      Back to Dashboard
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Verified */}
+              {kycStep === 4 && (
+                <div className="bg-white rounded-2xl p-6 shadow-lg">
+                  <div className="text-center mb-6">
+                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <FaFileAlt className="text-green-600 text-2xl" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">KYC Verified!</h3>
+                    <p className="text-sm text-gray-600">Your account has been successfully verified</p>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <div className="flex items-center gap-2 text-green-800 mb-2">
+                        <FaFileAlt />
+                        <span className="font-medium">Verification Complete</span>
+                      </div>
+                      <div className="text-sm text-green-700">
+                        Your KYC has been verified successfully. You can now access higher transaction limits and all features.
+                      </div>
+                    </div>
+                    
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="text-sm text-blue-800 font-medium mb-2">What's Next?</div>
+                      <ul className="text-xs text-blue-700 space-y-1">
+                        <li>• You can now buy and sell USDT with higher limits</li>
+                        <li>• Access to all premium features</li>
+                        <li>• Faster transaction processing</li>
+                        <li>• Priority customer support</li>
+                      </ul>
+                    </div>
+                    
+                    <button
+                      onClick={() => setShowKYCModal(false)}
+                      className="w-full bg-green-600 text-white py-3 rounded-xl font-medium hover:bg-green-700 transition-colors"
+                    >
+                      Continue to Dashboard
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

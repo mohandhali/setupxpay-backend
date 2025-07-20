@@ -307,8 +307,8 @@ app.post("/send-usdt", async (req, res) => {
     // === Network-specific USDT transfer ===
     if (network === "bep20") {
       // BEP20 (BSC) USDT transfer
-      // Using mainnet BEP20 USDT contract address
-      const BEP20_USDT_CONTRACT = "0x55d398326f99059fF775485246999027B3197955";
+      // Using testnet BEP20 USDT contract address
+      const BEP20_USDT_CONTRACT = "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd"; // BSC Testnet USDT
       
       // Validate amount for BEP20
       const amount = parseFloat(amountStr);
@@ -702,6 +702,101 @@ app.post("/withdraw", async (req, res) => {
   }
 });
 
+// ===== KYC API Endpoint =====
+app.post("/kyc/submit", async (req, res) => {
+  try {
+    const { userId, kycData, documents } = req.body;
+    
+    if (!userId || !kycData) {
+      return res.status(400).json({ success: false, error: "User ID and KYC data required" });
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    // Update user with KYC data
+    user.kycStatus = "pending";
+    user.kycData = kycData;
+    user.kycDocuments = documents || {};
+    user.kycSubmittedAt = new Date();
+    
+    await user.save();
+
+    console.log(`✅ KYC submitted for user ${userId}`);
+    
+    res.json({ 
+      success: true, 
+      message: "KYC submitted successfully",
+      kycStatus: "pending"
+    });
+
+  } catch (err) {
+    console.error("❌ KYC submission error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to submit KYC" });
+  }
+});
+
+// ===== Update KYC Status (Admin) =====
+app.post("/kyc/update-status", async (req, res) => {
+  try {
+    const { userId, status } = req.body;
+    
+    if (!userId || !status) {
+      return res.status(400).json({ success: false, error: "User ID and status required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    user.kycStatus = status;
+    if (status === "verified") {
+      user.kycVerifiedAt = new Date();
+    }
+    
+    await user.save();
+
+    console.log(`✅ KYC status updated to ${status} for user ${userId}`);
+    
+    res.json({ 
+      success: true, 
+      message: `KYC ${status} successfully`,
+      kycStatus: status
+    });
+
+  } catch (err) {
+    console.error("❌ KYC status update error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to update KYC status" });
+  }
+});
+
+// ===== Get KYC Status =====
+app.get("/kyc/status/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+
+    res.json({ 
+      success: true, 
+      kycStatus: user.kycStatus || "pending",
+      kycData: user.kycData || {},
+      kycSubmittedAt: user.kycSubmittedAt,
+      kycVerifiedAt: user.kycVerifiedAt
+    });
+
+  } catch (err) {
+    console.error("❌ KYC status fetch error:", err.message);
+    res.status(500).json({ success: false, error: "Failed to fetch KYC status" });
+  }
+});
 
 
 // ===== Start Server =====

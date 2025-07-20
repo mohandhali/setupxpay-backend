@@ -53,12 +53,31 @@ const Login = ({ onSuccess }) => {
 
   return (
     <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center px-4 py-8 overflow-hidden">
+      {/* Cross Button */}
+      <button
+        onClick={() => navigate("/")}
+        className="absolute top-4 right-4 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:bg-gray-50 transition-colors z-50"
+      >
+        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
       <motion.div
         className="w-full max-w-md bg-white p-6 sm:p-8 rounded-2xl shadow-xl"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
+        {/* Logo */}
+        <div className="flex justify-center mb-6">
+          <img 
+            src="/logo1.png" 
+            alt="SetupXPay Logo" 
+            className="w-20 h-20 rounded-full object-cover"
+          />
+        </div>
+        
         <h2 className="text-3xl font-extrabold text-gray-800 text-center mb-6">Login to Your Wallet</h2>
 
         {error && <p className="text-red-600 text-sm text-center mb-4">{error}</p>}

@@ -6,6 +6,7 @@ import Login from "./components/auth/Login";
 import Dashboard from "./components/Dashboard";
 import LandingPage from "./components/LandingPage";
 import PaymentSuccess from "./components/PaymentSuccess"; // ✅ New success screen
+import Referrals from "./components/Referrals";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -80,6 +81,16 @@ function App() {
         {/* ✅ Razorpay redirect page */}
         <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/community" element={<Community />} />
+        <Route 
+          path="/referrals" 
+          element={
+            user ? (
+              <Referrals user={user} onClose={() => navigate("/dashboard")} />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          } 
+        />
       </Routes>
     </div>
   );
