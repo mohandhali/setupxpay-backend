@@ -957,31 +957,42 @@ const Dashboard = ({ user }) => {
                     <button
                       onClick={async () => {
                         try {
+                          let docUrls = {};
+                          if (panCardFile || aadharFrontFile || aadharBackFile) {
+                            const formData = new FormData();
+                            formData.append("userId", user._id);
+                            if (panCardFile) formData.append("panCard", panCardFile);
+                            if (aadharFrontFile) formData.append("aadharFront", aadharFrontFile);
+                            if (aadharBackFile) formData.append("aadharBack", aadharBackFile);
+                            const uploadRes = await fetch("https://setupxpay-backend.onrender.com/kyc/upload", {
+                              method: "POST",
+                              body: formData
+                            });
+                            const uploadData = await uploadRes.json();
+                            if (uploadData.success) {
+                              docUrls = uploadData.kycDocuments;
+                            } else {
+                              alert("Document upload failed: " + (uploadData.error || "Unknown error"));
+                              return;
+                            }
+                          }
                           // Save KYC data to database
                           const kycSubmission = {
                             userId: user._id,
                             kycData: kycData,
-                            documents: {
-                              panCard: panCardFile ? panCardFile.name : null,
-                              aadharFront: aadharFrontFile ? aadharFrontFile.name : null,
-                              aadharBack: aadharBackFile ? aadharBackFile.name : null
-                            }
+                            documents: docUrls
                           };
-                          
                           // Call KYC API
                           const response = await fetch("https://setupxpay-backend.onrender.com/kyc/submit", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify(kycSubmission)
                           });
-                          
                           const result = await response.json();
-                          
                           if (!result.success) {
                             alert("❌ KYC submission failed: " + (result.error || "Unknown error"));
                             return;
                           }
-                          
                           // Update user data in localStorage
                           const updatedUser = { 
                             ...user, 
@@ -990,10 +1001,7 @@ const Dashboard = ({ user }) => {
                             kycSubmission: kycSubmission
                           };
                           localStorage.setItem("user", JSON.stringify(updatedUser));
-                          
-                          console.log("✅ KYC submitted successfully:", result);
                           setKycStep(3); // Move to processing
-                          
                         } catch (error) {
                           console.error("❌ KYC submission error:", error);
                           alert("❌ Failed to submit KYC. Please try again.");
