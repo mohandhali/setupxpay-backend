@@ -413,7 +413,8 @@ const Dashboard = () => {
     setKycStatus(user?.kycStatus || "pending");
   }, [user.kycStatus]);
 
-  const [showBankModal, setShowBankModal] = useState(false);
+  // Replace showBankModal/modal with full-page section
+  const [showBankSection, setShowBankSection] = useState(false);
   const [bankDetails, setBankDetails] = useState([]);
   const [bankLoading, setBankLoading] = useState(false);
   const [bankForm, setBankForm] = useState({ accountHolder: "", accountNumber: "", ifsc: "", upiId: "" });
@@ -423,9 +424,9 @@ const Dashboard = () => {
 
   // Fetch bank details when modal opens
   useEffect(() => {
-    if (showBankModal) fetchBankDetails();
+    if (showBankSection) fetchBankDetails();
     // eslint-disable-next-line
-  }, [showBankModal]);
+  }, [showBankSection]);
 
   const fetchBankDetails = async () => {
     setBankLoading(true);
@@ -557,7 +558,7 @@ const Dashboard = () => {
             </button>
             <button 
               onClick={() => {
-                setShowBankModal(true);
+                setShowBankSection(true);
                 setShowSidebar(false);
               }}
               className="flex items-center gap-3 text-gray-800 hover:text-blue-700"
@@ -1254,16 +1255,16 @@ const Dashboard = () => {
       )}
 
       {/* Bank Details Modal */}
-      {showBankModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-2xl p-6 shadow-lg w-full max-w-lg relative">
-            <button className="absolute top-3 right-3 text-gray-500 hover:text-gray-800" onClick={() => setShowBankModal(false)}><FaTimes /></button>
-            <h2 className="text-xl font-bold mb-2 flex items-center gap-2"><FaWallet /> Bank/UPI Details</h2>
-            <div className="text-xs text-yellow-700 bg-yellow-100 rounded px-3 py-2 mb-4">
-              <b>Note:</b> Sirf apne naam ka bank account ya UPI ID add karein. Third party details admin dwara reject ho jayenge.
+      {showBankSection && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white overflow-auto">
+          <div className="w-full max-w-2xl mx-auto p-6 relative min-h-screen flex flex-col">
+            <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-800" onClick={() => setShowBankSection(false)}><FaTimes /></button>
+            <h2 className="text-2xl font-bold mb-2 flex items-center gap-2"><FaWallet /> Bank & UPI Details</h2>
+            <div className="text-sm text-blue-800 bg-blue-50 rounded px-4 py-3 mb-6">
+              <b>Important:</b> Please add <b>only your own</b> bank account or UPI ID. <b>Third-party details are strictly prohibited</b> and will be rejected by the admin. Withdrawals will only be processed to your own verified accounts. Ensure the account holder name matches your KYC documents.
             </div>
-            <form onSubmit={handleBankSubmit} className="mb-4 space-y-2">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <form onSubmit={handleBankSubmit} className="mb-6 space-y-3 bg-gray-50 rounded-lg p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium mb-1">Account Holder Name</label>
                   <input type="text" name="accountHolder" value={bankForm.accountHolder} onChange={handleBankFormChange} className="w-full border px-2 py-1 rounded text-sm" required />
@@ -1281,19 +1282,19 @@ const Dashboard = () => {
                   <input type="text" name="upiId" value={bankForm.upiId} onChange={handleBankFormChange} className="w-full border px-2 py-1 rounded text-sm" />
                 </div>
               </div>
-              <div className="text-xs text-gray-500 mt-1">Account Number ya UPI ID me se kam se kam ek required hai.</div>
+              <div className="text-xs text-gray-500 mt-1">At least one payment method (Account Number or UPI ID) is required.</div>
               {bankError && <div className="text-red-600 text-xs mt-1">{bankError}</div>}
               {bankSuccess && <div className="text-green-600 text-xs mt-1">{bankSuccess}</div>}
               <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-medium mt-2" disabled={bankSubmitting}>
                 {bankSubmitting ? "Saving..." : <span className="flex items-center justify-center gap-2"><FaPlus /> Add Bank/UPI</span>}
               </button>
             </form>
-            <div className="mb-2 font-semibold text-sm">Your Bank/UPI Details</div>
+            <div className="mb-2 font-semibold text-base">Your Bank/UPI Details</div>
             {bankLoading ? <div>Loading...</div> : (
-              <div className="space-y-2 max-h-48 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {bankDetails.length === 0 && <div className="text-xs text-gray-500">No bank/UPI details added yet.</div>}
                 {bankDetails.map((bd, idx) => (
-                  <div key={idx} className="border rounded-lg px-3 py-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-xs">
+                  <div key={idx} className="border rounded-lg px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-sm bg-white shadow-sm">
                     <div>
                       <div><b>Account Holder:</b> {bd.accountHolder || "-"}</div>
                       {bd.accountNumber && <div><b>Account No:</b> {bd.accountNumber}</div>}
