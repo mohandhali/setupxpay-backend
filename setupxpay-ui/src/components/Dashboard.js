@@ -17,7 +17,7 @@ import { CURRENT_CONFIG } from "../config/mainnet";
 
 
 
-const Dashboard = ({ user }) => {
+const Dashboard = () => {
   const [balance, setBalance] = useState("0");
   const [buyRate, setBuyRate] = useState("-");
   const [sellRate, setSellRate] = useState("-");
@@ -33,11 +33,66 @@ const Dashboard = ({ user }) => {
   const [usdtPrice, setUsdtPrice] = useState(1.0);
   const navigate = useNavigate();
   
+  // Add user and setUser state at the top of Dashboard.js
+  const [user, setUser] = useState(() => {
+    const stored = localStorage.getItem("user");
+    return stored ? JSON.parse(stored) : {};
+  });
+
   // KYC states
   const [kycStatus, setKycStatus] = useState(user?.kycStatus || "pending"); // pending, verified, rejected
   // Set initial step based on whether user.kycData exists and is filled
-  const initialKycStep = (user?.kycData && user.kycData.fullName && user.kycData.dateOfBirth && user.kycData.address && user.kycData.city && user.kycData.state && user.kycData.pincode) ? 2 : 1;
-  const [kycStep, setKycStep] = useState(initialKycStep); // 1: Manual Details, 2: Document Upload, 3: Processing, 4: Verified
+  function isKycDataFilled(kycData) {
+    return kycData && kycData.fullName && kycData.dateOfBirth && kycData.address && kycData.city && kycData.state && kycData.pincode;
+  }
+  const [kycStep, setKycStep] = useState(() => isKycDataFilled(user?.kycData) ? 2 : 1);
+
+  // When KYC modal is opened, re-check and set the step
+  useEffect(() => {
+    if (showKYCModal) {
+      setKycStep(isKycDataFilled(user?.kycData) ? 2 : 1);
+    }
+    // eslint-disable-next-line
+  }, [showKYCModal]);
+
+  // Add this useEffect to fetch latest user data when KYC modal opens
+  // Add a loading state for KYC modal user fetch
+  const [kycUserLoading, setKycUserLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchLatestUser = async () => {
+      if (showKYCModal && localStorage.getItem("token")) {
+        setKycUserLoading(true);
+        try {
+          const res = await fetch("https://setupxpay-backend.onrender.com/auth/me", {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+          });
+          const data = await res.json();
+          if (data && data.user) {
+            setUser(data.user);
+            if (
+              data.user.kycData &&
+              data.user.kycData.fullName &&
+              data.user.kycData.dateOfBirth &&
+              data.user.kycData.address &&
+              data.user.kycData.city &&
+              data.user.kycData.state &&
+              data.user.kycData.pincode
+            ) {
+              setKycStep(2); // Go to document upload
+            } else {
+              setKycStep(1); // Show details form
+            }
+          }
+        } catch (err) {
+          // fallback: do nothing
+        }
+        setKycUserLoading(false);
+      }
+    };
+    fetchLatestUser();
+    // eslint-disable-next-line
+  }, [showKYCModal]);
   const [kycData, setKycData] = useState({
     fullName: "",
     dateOfBirth: "",
@@ -824,7 +879,7 @@ const Dashboard = ({ user }) => {
                     </div>
                     
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         // Validate required fields
                         if (!kycData.fullName || !kycData.dateOfBirth || !kycData.address || !kycData.city || !kycData.state || !kycData.pincode) {
                           alert("Please fill in all required fields marked with *");
@@ -835,7 +890,36 @@ const Dashboard = ({ user }) => {
                           alert("Pincode must be exactly 6 digits");
                           return;
                         }
-                        setKycStep(2); // Move to document upload
+                        // Submit KYC details to backend
+                        try {
+                          const kycSubmission = {
+                            userId: user._id,
+                            kycData: kycData,
+                            documents: user.kycDocuments || {}
+                          };
+                          const response = await fetch("https://setupxpay-backend.onrender.com/kyc/submit", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(kycSubmission)
+                          });
+                          const result = await response.json();
+                          if (!result.success) {
+                            alert("❌ KYC submission failed: " + (result.error || "Unknown error"));
+                            return;
+                          }
+                          // Fetch latest user data from backend
+                          const meRes = await fetch("https://setupxpay-backend.onrender.com/auth/me", {
+                            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+                          });
+                          const meData = await meRes.json();
+                          if (meData && meData.user) {
+                            setUser(meData.user);
+                            localStorage.setItem("user", JSON.stringify(meData.user));
+                          }
+                          setKycStep(2); // Move to document upload
+                        } catch (error) {
+                          alert("❌ Failed to submit KYC. Please try again.");
+                        }
                       }}
                       className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
                     >
