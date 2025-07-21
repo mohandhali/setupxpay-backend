@@ -409,6 +409,10 @@ const Dashboard = () => {
     window.location.href = "/"; // Force redirect to landing page
   };
 
+  useEffect(() => {
+    setKycStatus(user?.kycStatus || "pending");
+  }, [user.kycStatus]);
+
   if (!user || !user._id) {
     // Optionally clear localStorage if user is invalid
     localStorage.removeItem("user");
