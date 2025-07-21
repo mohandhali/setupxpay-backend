@@ -35,7 +35,9 @@ const Dashboard = ({ user }) => {
   
   // KYC states
   const [kycStatus, setKycStatus] = useState(user?.kycStatus || "pending"); // pending, verified, rejected
-  const [kycStep, setKycStep] = useState(1); // 1: Manual Details, 2: Document Upload, 3: Processing, 4: Verified
+  // Set initial step based on whether user.kycData exists and is filled
+  const initialKycStep = (user?.kycData && user.kycData.fullName && user.kycData.dateOfBirth && user.kycData.address && user.kycData.city && user.kycData.state && user.kycData.pincode) ? 2 : 1;
+  const [kycStep, setKycStep] = useState(initialKycStep); // 1: Manual Details, 2: Document Upload, 3: Processing, 4: Verified
   const [kycData, setKycData] = useState({
     fullName: "",
     dateOfBirth: "",
@@ -774,28 +776,6 @@ const Dashboard = ({ user }) => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">PAN Number *</label>
-                        <input
-                          type="text"
-                          value={kycData.panNumber}
-                          onChange={(e) => setKycData({...kycData, panNumber: e.target.value.toUpperCase()})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          maxLength="10"
-                          placeholder="Enter 10-character PAN number"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Aadhar Number *</label>
-                        <input
-                          type="text"
-                          value={kycData.aadharNumber}
-                          onChange={(e) => setKycData({...kycData, aadharNumber: e.target.value.replace(/\D/g, '')})}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          maxLength="12"
-                          placeholder="Enter 12-digit Aadhar number"
-                        />
-                      </div>
                     </div>
                     
                     <div>
@@ -846,36 +826,20 @@ const Dashboard = ({ user }) => {
                     <button
                       onClick={() => {
                         // Validate required fields
-                        if (!kycData.fullName || !kycData.dateOfBirth || !kycData.panNumber || 
-                            !kycData.aadharNumber || !kycData.address || !kycData.city || 
-                            !kycData.state || !kycData.pincode) {
+                        if (!kycData.fullName || !kycData.dateOfBirth || !kycData.address || !kycData.city || !kycData.state || !kycData.pincode) {
                           alert("Please fill in all required fields marked with *");
                           return;
                         }
-                        
-                        // Validate PAN number format
-                        if (kycData.panNumber.length !== 10) {
-                          alert("PAN number must be exactly 10 characters");
-                          return;
-                        }
-                        
-                        // Validate Aadhar number format
-                        if (kycData.aadharNumber.length !== 12) {
-                          alert("Aadhar number must be exactly 12 digits");
-                          return;
-                        }
-                        
                         // Validate pincode format
                         if (kycData.pincode.length !== 6) {
                           alert("Pincode must be exactly 6 digits");
                           return;
                         }
-                        
                         setKycStep(2); // Move to document upload
                       }}
                       className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
                     >
-                      Next: Upload Documents
+                      Next
                     </button>
                   </div>
                 </div>
@@ -943,19 +907,13 @@ const Dashboard = ({ user }) => {
                       </label>
                     </div>
                     
-                    <div className="text-center">
-                      <button
-                        onClick={() => {
-                          setKycStep(3);
-                        }}
-                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-                      >
-                        Skip document upload →
-                      </button>
-                    </div>
-                    
                     <button
                       onClick={async () => {
+                        // Validate mandatory uploads
+                        if (!panCardFile || !aadharFrontFile || !aadharBackFile) {
+                          alert("Please upload PAN card and both sides of Aadhar card.");
+                          return;
+                        }
                         try {
                           let docUrls = {};
                           if (panCardFile || aadharFrontFile || aadharBackFile) {
@@ -1009,7 +967,7 @@ const Dashboard = ({ user }) => {
                       }}
                       className="w-full bg-green-600 text-white py-3 rounded-xl font-medium hover:bg-green-700 transition-colors"
                     >
-                      Submit for Verification
+                      Next
                     </button>
                   </div>
                 </div>
