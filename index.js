@@ -67,8 +67,12 @@ cloudinary.config({
 // Helper to upload a file buffer to Cloudinary
 async function uploadToCloudinaryBuffer(fileBuffer, originalname, folder) {
   return new Promise((resolve, reject) => {
+    // Generate a unique public_id for each file
+    const uniqueId = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = originalname.split('.').pop();
+    const base = originalname.replace(/\.[^/.]+$/, "");
     cloudinary.uploader.upload_stream(
-      { folder, public_id: originalname.split('.')[0] },
+      { folder, public_id: `${base}-${uniqueId}` },
       (err, result) => {
         if (err) return reject(err);
         resolve(result.secure_url);
