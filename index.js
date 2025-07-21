@@ -27,15 +27,7 @@ const RAZORPAY_WEBHOOK_SECRET = "setupx_secret_key";
 const ENCRYPTION_KEY = "setupxpay_encryption_key_2024"; // For encrypting private keys
 
 // Multer setup for file uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, "uploads"));
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname.replace(/\s+/g, '_'));
-  }
-});
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 // Serve uploads statically
@@ -48,17 +40,20 @@ cloudinary.config({
   api_secret: '3erjFlmW3FSHNxfGIvNXbhs1d94',
 });
 
-// Helper to upload a file to Cloudinary
-async function uploadToCloudinary(file, folder) {
+// Helper to upload a file buffer to Cloudinary
+async function uploadToCloudinaryBuffer(fileBuffer, originalname, folder) {
   return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload(file.path, { folder }, (err, result) => {
-      if (err) return reject(err);
-      resolve(result.secure_url);
-    });
+    cloudinary.uploader.upload_stream(
+      { folder, public_id: originalname.split('.')[0] },
+      (err, result) => {
+        if (err) return reject(err);
+        resolve(result.secure_url);
+      }
+    ).end(fileBuffer);
   });
 }
 
-// KYC file upload endpoint (Cloudinary version)
+// KYC file upload endpoint (Cloudinary version, memory buffer)
 app.post("/kyc/upload", upload.fields([
   { name: "panCard", maxCount: 1 },
   { name: "aadharFront", maxCount: 1 },
@@ -71,9 +66,9 @@ app.post("/kyc/upload", upload.fields([
     if (!user) return res.status(404).json({ success: false, error: "User not found" });
     const files = req.files;
     const docUrls = {};
-    if (files.panCard) docUrls.panCard = await uploadToCloudinary(files.panCard[0], 'kyc_docs');
-    if (files.aadharFront) docUrls.aadharFront = await uploadToCloudinary(files.aadharFront[0], 'kyc_docs');
-    if (files.aadharBack) docUrls.aadharBack = await uploadToCloudinary(files.aadharBack[0], 'kyc_docs');
+    if (files.panCard) docUrls.panCard = await uploadToCloudinaryBuffer(files.panCard[0].buffer, files.panCard[0].originalname, 'kyc_docs');
+    if (files.aadharFront) docUrls.aadharFront = await uploadToCloudinaryBuffer(files.aadharFront[0].buffer, files.aadharFront[0].originalname, 'kyc_docs');
+    if (files.aadharBack) docUrls.aadharBack = await uploadToCloudinaryBuffer(files.aadharBack[0].buffer, files.aadharBack[0].originalname, 'kyc_docs');
     user.kycDocuments = { ...user.kycDocuments, ...docUrls };
     await user.save();
     res.json({ success: true, kycDocuments: user.kycDocuments });
