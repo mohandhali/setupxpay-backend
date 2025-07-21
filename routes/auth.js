@@ -241,6 +241,7 @@ router.get("/me", authMiddleware, async (req, res) => {
         email: user.email,
         walletAddress: user.walletAddress,
         bep20Address: user.bep20Address,
+        kycStatus: user.kycStatus, // <-- Add this line
         // add other public fields if needed
       }
     });
