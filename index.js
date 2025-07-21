@@ -60,6 +60,8 @@ app.post("/kyc/upload", upload.fields([
   { name: "aadharBack", maxCount: 1 }
 ]), async (req, res) => {
   try {
+    console.log("[KYC UPLOAD] req.body:", req.body);
+    console.log("[KYC UPLOAD] req.files:", req.files);
     const { userId } = req.body;
     if (!userId) return res.status(400).json({ success: false, error: "User ID required" });
     const user = await User.findById(userId);

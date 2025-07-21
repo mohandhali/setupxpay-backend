@@ -955,6 +955,9 @@ const Dashboard = () => {
                             <FaFileAlt className="text-gray-600 text-sm" />
                           </div>
                           <div className="text-xs font-medium text-gray-700">PAN Card</div>
+                          {panCardFile && (
+                            <div className="text-xs text-green-600 mt-1">{panCardFile.name}</div>
+                          )}
                         </label>
                       </div>
                       
@@ -971,6 +974,9 @@ const Dashboard = () => {
                             <FaFileAlt className="text-gray-600 text-sm" />
                           </div>
                           <div className="text-xs font-medium text-gray-700">Aadhar Front</div>
+                          {aadharFrontFile && (
+                            <div className="text-xs text-green-600 mt-1">{aadharFrontFile.name}</div>
+                          )}
                         </label>
                       </div>
                     </div>
@@ -988,6 +994,9 @@ const Dashboard = () => {
                           <FaFileAlt className="text-gray-600 text-sm" />
                         </div>
                         <div className="text-xs font-medium text-gray-700">Aadhar Back</div>
+                        {aadharBackFile && (
+                          <div className="text-xs text-green-600 mt-1">{aadharBackFile.name}</div>
+                        )}
                       </label>
                     </div>
                     
@@ -998,6 +1007,12 @@ const Dashboard = () => {
                           alert("Please upload PAN card and both sides of Aadhar card.");
                           return;
                         }
+                        // Log files for debugging
+                        console.log("Uploading files:", {
+                          panCardFile,
+                          aadharFrontFile,
+                          aadharBackFile
+                        });
                         try {
                           let docUrls = {};
                           if (panCardFile || aadharFrontFile || aadharBackFile) {
