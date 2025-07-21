@@ -766,31 +766,17 @@ app.post("/kyc/submit", async (req, res) => {
     const { userId, kycData, documents } = req.body;
     
     if (!userId || !kycData) {
-      return res.status(400).json({ success: false, error: "User ID and KYC data required" });
+      return res.status(400).json({ success: false, error: "Missing userId or kycData" });
     }
-
-    // Find user
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ success: false, error: "User not found" });
     }
-
-    // Update user with KYC data
-    user.kycStatus = "pending";
     user.kycData = kycData;
-    user.kycDocuments = documents || {};
-    user.kycSubmittedAt = new Date();
-    
+    if (documents) user.kycDocuments = documents;
+    user.kycStatus = "pending";
     await user.save();
-
-    console.log(`✅ KYC submitted for user ${userId}`);
-    
-    res.json({ 
-      success: true, 
-      message: "KYC submitted successfully",
-      kycStatus: "pending"
-    });
-
+    res.json({ success: true, user });
   } catch (err) {
     console.error("❌ KYC submission error:", err.message);
     res.status(500).json({ success: false, error: "Failed to submit KYC" });
