@@ -77,19 +77,7 @@ const Dashboard = () => {
           const data = await res.json();
           if (data && data.user) {
             setUser(data.user);
-            if (
-              data.user.kycData &&
-              data.user.kycData.fullName &&
-              data.user.kycData.dateOfBirth &&
-              data.user.kycData.address &&
-              data.user.kycData.city &&
-              data.user.kycData.state &&
-              data.user.kycData.pincode
-            ) {
-              setKycStep(2); // Go to document upload
-            } else {
-              setKycStep(1); // Show details form
-            }
+            // Removed setKycStep here to avoid overwriting the main KYC step logic
           }
         } catch (err) {
           // fallback: do nothing
