@@ -33,6 +33,18 @@ const userSchema = new mongoose.Schema({
   kycSubmittedAt: Date,
   kycVerifiedAt: Date,
   
+  bankDetails: [
+    {
+      accountHolder: String,
+      accountNumber: String,
+      ifsc: String,
+      upiId: String,
+      status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
+      adminNote: String,
+      addedAt: { type: Date, default: Date.now }
+    }
+  ],
+  
   createdAt: { type: Date, default: Date.now },
 });
 

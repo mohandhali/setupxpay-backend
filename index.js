@@ -917,6 +917,48 @@ app.post("/kyc/update-status", adminAuth, async (req, res) => {
   }
 });
 
+// ====== BANK DETAILS API ======
+const userAuth = async (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "No token provided" });
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.userId = decoded.id;
+    next();
+  } catch {
+    return res.status(401).json({ error: "Invalid token" });
+  }
+};
+
+// Add new bank/UPI details (user)
+app.post("/user/bank-details", userAuth, async (req, res) => {
+  try {
+    const { accountHolder, accountNumber, ifsc, upiId } = req.body;
+    if (!accountHolder || (!accountNumber && !upiId)) {
+      return res.status(400).json({ error: "Account holder and at least one payment method required" });
+    }
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    // Add new entry (pending)
+    user.bankDetails.push({ accountHolder, accountNumber, ifsc, upiId, status: "pending" });
+    await user.save();
+    res.json({ success: true, message: "Bank/UPI details added. Only your own account/UPI is allowed. Third party details will be rejected by admin.", bankDetails: user.bankDetails });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to add bank details" });
+  }
+});
+
+// Get all bank/UPI details for user
+app.get("/user/bank-details", userAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    res.json({ success: true, bankDetails: user.bankDetails || [] });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch bank details" });
+  }
+});
+
 
 // ===== Start Server =====
 app.listen(PORT, () => {
