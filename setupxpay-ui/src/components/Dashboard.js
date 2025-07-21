@@ -50,10 +50,17 @@ const Dashboard = () => {
   // When KYC modal is opened, re-check and set the step
   useEffect(() => {
     if (showKYCModal) {
-      setKycStep(isKycDataFilled(user?.kycData) ? 2 : 1);
+      if (user.kycStatus === "verified") {
+        setKycStep(4); // Show verified screen
+      } else if (user.kycStatus === "pending") {
+        setKycStep(3); // Show processing screen
+      } else if (isKycDataFilled(user?.kycData)) {
+        setKycStep(2); // Go to document upload
+      } else {
+        setKycStep(1); // Show details form
+      }
     }
-    // eslint-disable-next-line
-  }, [showKYCModal]);
+  }, [showKYCModal, user]);
 
   // Add this useEffect to fetch latest user data when KYC modal opens
   // Add a loading state for KYC modal user fetch
