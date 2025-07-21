@@ -109,7 +109,7 @@ function decryptPrivateKey(encryptedPrivateKey) {
   return decrypted;
 }
 
-// ===== Middleware =====
+// CORS middleware at the very top
 app.use(cors({
   origin: [
     "https://setupxpay-78bb7.web.app",
@@ -124,6 +124,8 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 }));
+// Handle preflight requests for all routes
+app.options('*', cors());
 // 👇 Place webhook raw middleware BEFORE express.json()
 app.use("/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
