@@ -21,6 +21,8 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
   const [successDetails, setSuccessDetails] = useState({});
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
+  const [approvedBankDetails, setApprovedBankDetails] = useState([]);
+  const [selectedBankIdx, setSelectedBankIdx] = useState(0);
 
   // SetupXPay liquidity pool addresses (example)
   const setupxWalletAddressTRC = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
@@ -29,6 +31,35 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
   const getAddressForNetwork = () => (network === "bep20" ? bep20Address : trc20Address);
   const getSetupxWalletForNetwork = () => (network === "bep20" ? setupxWalletAddressBEP : setupxWalletAddressTRC);
   const getFeeForNetwork = () => (network === "bep20" ? bepFee : trcFee);
+
+  // Fetch approved bank/UPI details on open
+  useEffect(() => {
+    if (userId) fetchApprovedBankDetails();
+    // eslint-disable-next-line
+  }, [userId]);
+
+  const fetchApprovedBankDetails = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("https://setupxpay-backend.onrender.com/user/bank-details", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        const approved = (data.bankDetails || []).filter(bd => bd.status === "approved");
+        setApprovedBankDetails(approved);
+        setSelectedBankIdx(0);
+      } else {
+        setApprovedBankDetails([]);
+      }
+    } catch {
+      setApprovedBankDetails([]);
+    }
+  };
+
+  useEffect(() => {
+    console.log("SellUSDTQRModal userId:", userId);
+  }, [userId]);
 
   useEffect(() => {
     if (step === "scan" && scannerRef.current) {
@@ -53,10 +84,6 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
       stopScanner();
     };
   }, [step]);
-
-  useEffect(() => {
-    console.log("SellUSDTQRModal userId:", userId);
-  }, [userId]);
 
   const stopScanner = async () => {
     if (html5QrCodeRef.current) {
@@ -111,18 +138,27 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
   };
 
   const handleSell = async () => {
-    if (!amountInr || !upiId) {
-      alert("Enter valid amount and UPI ID");
+    if (!amountInr) {
+      alert("Enter valid amount");
       return;
     }
-
-    const cleanUpi = upiId.trim().match(/[a-zA-Z0-9.\-_]+@[a-zA-Z]+/)?.[0];
-    if (!cleanUpi) {
-      alert("Invalid UPI ID scanned.");
+    // Use payout details from selected approved bank/UPI
+    const payout = approvedBankDetails[selectedBankIdx];
+    if (!payout) {
+      alert("Please select an approved payout method");
       return;
     }
-
-    const usdtAmount = calculateUSDT();
+    // For UPI payout, prefer UPI ID, else bank
+    let payoutUpi = payout.upiId;
+    if (!payoutUpi && payout.accountNumber && payout.ifsc) {
+      payoutUpi = null; // fallback to bank transfer (not implemented in this modal)
+    }
+    if (!payoutUpi) {
+      alert("Only UPI payout is supported in this flow. Please add an approved UPI ID.");
+      return;
+    }
+    setUpiId(payoutUpi);
+    setMerchantName(payout.accountHolder);
     setShowBiometricAuth(true);
   };
 
@@ -304,12 +340,36 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
 
           {step === "details" && (
             <div className="space-y-4">
-              <div className="bg-blue-50 rounded-lg p-3">
-                <div className="text-xs text-gray-500 mb-1">Merchant Name</div>
-                <div className="font-semibold text-gray-800">{merchantName}</div>
-                <div className="text-xs text-gray-500 mt-2">UPI ID</div>
-                <div className="font-mono text-xs break-all">{upiId}</div>
+              {/* Payout Method Selector */}
+              <div>
+                <label className="block text-sm font-medium text-gray-600 mb-1">Select Payout Method (Approved Only)</label>
+                {approvedBankDetails.length === 0 ? (
+                  <div className="text-xs text-red-600">No approved bank/UPI details found. Please add and wait for admin approval.</div>
+                ) : (
+                  <select
+                    value={selectedBankIdx}
+                    onChange={e => setSelectedBankIdx(Number(e.target.value))}
+                    className="w-full border px-4 py-2 rounded-lg text-sm outline-blue-600 mb-2"
+                  >
+                    {approvedBankDetails.map((bd, idx) => (
+                      <option value={idx} key={idx}>
+                        {bd.upiId ? `UPI: ${bd.upiId}` : `Bank: ${bd.accountNumber} (${bd.accountHolder})`} {bd.adminNote ? `- Note: ${bd.adminNote}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
+              {/* Show selected payout details */}
+              {approvedBankDetails[selectedBankIdx] && (
+                <div className="bg-blue-50 rounded-lg p-3 mb-2">
+                  <div className="text-xs text-gray-500 mb-1">Account Holder</div>
+                  <div className="font-semibold text-gray-800">{approvedBankDetails[selectedBankIdx].accountHolder}</div>
+                  {approvedBankDetails[selectedBankIdx].upiId && <><div className="text-xs text-gray-500 mt-2">UPI ID</div><div className="font-mono text-xs break-all">{approvedBankDetails[selectedBankIdx].upiId}</div></>}
+                  {approvedBankDetails[selectedBankIdx].accountNumber && <><div className="text-xs text-gray-500 mt-2">Account No</div><div className="font-mono text-xs break-all">{approvedBankDetails[selectedBankIdx].accountNumber}</div></>}
+                  {approvedBankDetails[selectedBankIdx].ifsc && <><div className="text-xs text-gray-500 mt-2">IFSC</div><div className="font-mono text-xs break-all">{approvedBankDetails[selectedBankIdx].ifsc}</div></>}
+                  {approvedBankDetails[selectedBankIdx].adminNote && <div className="text-xs text-gray-500 mt-2">Note: {approvedBankDetails[selectedBankIdx].adminNote}</div>}
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Enter INR Amount</label>
                 <input
@@ -341,7 +401,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
               </div>
               <button
                 onClick={handleSell}
-                disabled={processing}
+                disabled={processing || approvedBankDetails.length === 0}
                 className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50"
               >
                 {processing ? (

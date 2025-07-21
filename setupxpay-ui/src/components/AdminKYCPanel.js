@@ -9,6 +9,8 @@ const AdminKYCPanel = () => {
   const [actionLoading, setActionLoading] = useState("");
   const [token, setToken] = useState(() => localStorage.getItem("admin_jwt") || "");
   const [loginState, setLoginState] = useState({ username: "", password: "", error: "", loading: false });
+  const [bankActionLoading, setBankActionLoading] = useState("");
+  const [bankNotes, setBankNotes] = useState({});
 
   useEffect(() => {
     if (token) fetchKYCUsers();
@@ -40,6 +42,32 @@ const AdminKYCPanel = () => {
     setLoading(false);
   };
 
+  // Fetch all users with bank details for admin review
+  const fetchBankUsers = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${BACKEND_URL}/admin/bank-details`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.status === 401) {
+        setToken("");
+        localStorage.removeItem("admin_jwt");
+        setLoading(false);
+        return;
+      }
+      const data = await res.json();
+      if (data.success) {
+        setUsers(data.users);
+      } else {
+        setError(data.error || "Failed to fetch users' bank details");
+      }
+    } catch (err) {
+      setError("Failed to fetch users' bank details");
+    }
+    setLoading(false);
+  };
+
   const updateKYCStatus = async (userId, status) => {
     setActionLoading(userId + status);
     try {
@@ -64,6 +92,33 @@ const AdminKYCPanel = () => {
       alert("Failed to update status");
     }
     setActionLoading("");
+  };
+
+  // Approve/reject a user's bank detail
+  const updateBankStatus = async (userId, index, status) => {
+    setBankActionLoading(userId + index + status);
+    try {
+      const res = await fetch(`${BACKEND_URL}/admin/approve-bank-details`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userId, index, status, adminNote: bankNotes[userId + "-" + index] || "" })
+      });
+      if (res.status === 401) {
+        setToken("");
+        localStorage.removeItem("admin_jwt");
+        setBankActionLoading("");
+        return;
+      }
+      const data = await res.json();
+      if (data.success) {
+        fetchBankUsers();
+      } else {
+        alert(data.error || "Failed to update bank detail status");
+      }
+    } catch (err) {
+      alert("Failed to update bank detail status");
+    }
+    setBankActionLoading("");
   };
 
   const handleLogin = async (e) => {
@@ -116,13 +171,18 @@ const AdminKYCPanel = () => {
         <h1 className="text-2xl font-bold">KYC Admin Panel</h1>
         <button onClick={() => { setToken(""); localStorage.removeItem("admin_jwt"); }} className="bg-gray-200 px-3 py-1 rounded text-sm">Logout</button>
       </div>
+      <div className="mb-6">
+        <button onClick={fetchKYCUsers} className="bg-blue-600 text-white px-4 py-2 rounded mr-2">KYC Users</button>
+        <button onClick={fetchBankUsers} className="bg-green-600 text-white px-4 py-2 rounded">Bank Details</button>
+      </div>
       {loading ? (
         <div>Loading...</div>
       ) : error ? (
         <div className="text-red-600">{error}</div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border rounded-lg">
+          {/* KYC Table (default) */}
+          <table className="min-w-full bg-white border rounded-lg mb-10">
             <thead>
               <tr>
                 <th className="px-4 py-2 border">Name</th>
@@ -184,6 +244,68 @@ const AdminKYCPanel = () => {
                     )}
                   </td>
                 </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Bank Details Table (if any user has bankDetails) */}
+          <table className="min-w-full bg-white border rounded-lg">
+            <thead>
+              <tr>
+                <th className="px-4 py-2 border">Name</th>
+                <th className="px-4 py-2 border">Email</th>
+                <th className="px-4 py-2 border">Bank/UPI Details</th>
+                <th className="px-4 py-2 border">Status</th>
+                <th className="px-4 py-2 border">Admin Note</th>
+                <th className="px-4 py-2 border">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                user.bankDetails && user.bankDetails.length > 0 && user.bankDetails.map((bd, idx) => (
+                  <tr key={user._id + "-" + idx} className="border-t">
+                    <td className="px-4 py-2 border">{user.kycData?.fullName || user.name || "-"}</td>
+                    <td className="px-4 py-2 border">{user.email}</td>
+                    <td className="px-4 py-2 border text-xs">
+                      <div><b>Account Holder:</b> {bd.accountHolder || "-"}</div>
+                      {bd.accountNumber && <div><b>Account No:</b> {bd.accountNumber}</div>}
+                      {bd.ifsc && <div><b>IFSC:</b> {bd.ifsc}</div>}
+                      {bd.upiId && <div><b>UPI:</b> {bd.upiId}</div>}
+                      <div className="text-gray-400 text-xs mt-1">Added: {bd.addedAt ? new Date(bd.addedAt).toLocaleString() : "-"}</div>
+                    </td>
+                    <td className="px-4 py-2 border capitalize">{bd.status}</td>
+                    <td className="px-4 py-2 border">
+                      <input
+                        type="text"
+                        className="border px-2 py-1 rounded w-32 text-xs"
+                        placeholder="Admin note"
+                        value={bankNotes[user._id + "-" + idx] || bd.adminNote || ""}
+                        onChange={e => setBankNotes({ ...bankNotes, [user._id + "-" + idx]: e.target.value })}
+                        disabled={bankActionLoading === user._id + idx + "approved" || bankActionLoading === user._id + idx + "rejected"}
+                      />
+                    </td>
+                    <td className="px-4 py-2 border">
+                      {bd.status !== "approved" && (
+                        <button
+                          className="bg-green-600 text-white px-3 py-1 rounded mr-2 disabled:opacity-50"
+                          disabled={bankActionLoading === user._id + idx + "approved"}
+                          onClick={() => updateBankStatus(user._id, idx, "approved")}
+                        >
+                          {bankActionLoading === user._id + idx + "approved" ? "Approving..." : "Approve"}
+                        </button>
+                      )}
+                      {bd.status !== "rejected" && (
+                        <button
+                          className="bg-red-600 text-white px-3 py-1 rounded disabled:opacity-50"
+                          disabled={bankActionLoading === user._id + idx + "rejected"}
+                          onClick={() => updateBankStatus(user._id, idx, "rejected")}
+                        >
+                          {bankActionLoading === user._id + idx + "rejected" ? "Rejecting..." : "Reject"}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
               ))}
             </tbody>
           </table>

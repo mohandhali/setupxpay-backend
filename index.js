@@ -959,6 +959,45 @@ app.get("/user/bank-details", userAuth, async (req, res) => {
   }
 });
 
+// ====== ADMIN: BANK DETAILS REVIEW ======
+// List all users with at least one bank detail (for admin panel)
+app.get("/admin/bank-details", adminAuth, async (req, res) => {
+  try {
+    const users = await User.find({ "bankDetails.0": { $exists: true } });
+    // Only send relevant info
+    const result = users.map(u => ({
+      _id: u._id,
+      name: u.name,
+      email: u.email,
+      kycStatus: u.kycStatus,
+      kycData: u.kycData,
+      bankDetails: u.bankDetails
+    }));
+    res.json({ success: true, users: result });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch users' bank details" });
+  }
+});
+
+// Approve/reject a user's bank detail (by index)
+app.post("/admin/approve-bank-details", adminAuth, async (req, res) => {
+  try {
+    const { userId, index, status, adminNote } = req.body;
+    if (!userId || typeof index !== "number" || !["approved", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "userId, index, and valid status required" });
+    }
+    const user = await User.findById(userId);
+    if (!user || !user.bankDetails[index]) {
+      return res.status(404).json({ error: "User or bank detail not found" });
+    }
+    user.bankDetails[index].status = status;
+    user.bankDetails[index].adminNote = adminNote || "";
+    await user.save();
+    res.json({ success: true, message: `Bank detail ${status}`, bankDetails: user.bankDetails });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to update bank detail status" });
+  }
+});
 
 // ===== Start Server =====
 app.listen(PORT, () => {

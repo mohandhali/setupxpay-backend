@@ -7,7 +7,7 @@ import WithdrawINRModal from "./WithdrawINRModal";
 import Profile from "./Profile";
 import {
   FaBars, FaUser, FaCog, FaWallet, FaFileAlt, FaSignOutAlt,
-  FaCopy, FaQrcode, FaUsers, FaExchangeAlt, FaTelegramPlane, FaWhatsapp, FaTimes, FaArrowLeft
+  FaCopy, FaQrcode, FaUsers, FaExchangeAlt, FaTelegramPlane, FaWhatsapp, FaTimes, FaArrowLeft, FaPlus
 } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 import setupxpayLogo from "../assets/logo.png";
@@ -413,6 +413,73 @@ const Dashboard = () => {
     setKycStatus(user?.kycStatus || "pending");
   }, [user.kycStatus]);
 
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [bankDetails, setBankDetails] = useState([]);
+  const [bankLoading, setBankLoading] = useState(false);
+  const [bankForm, setBankForm] = useState({ accountHolder: "", accountNumber: "", ifsc: "", upiId: "" });
+  const [bankError, setBankError] = useState("");
+  const [bankSuccess, setBankSuccess] = useState("");
+  const [bankSubmitting, setBankSubmitting] = useState(false);
+
+  // Fetch bank details when modal opens
+  useEffect(() => {
+    if (showBankModal) fetchBankDetails();
+    // eslint-disable-next-line
+  }, [showBankModal]);
+
+  const fetchBankDetails = async () => {
+    setBankLoading(true);
+    setBankError("");
+    try {
+      const res = await fetch("https://setupxpay-backend.onrender.com/user/bank-details", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBankDetails(data.bankDetails || []);
+      } else {
+        setBankError(data.error || "Failed to fetch bank details");
+      }
+    } catch (err) {
+      setBankError("Failed to fetch bank details");
+    }
+    setBankLoading(false);
+  };
+
+  const handleBankFormChange = (e) => {
+    setBankForm({ ...bankForm, [e.target.name]: e.target.value });
+  };
+
+  const handleBankSubmit = async (e) => {
+    e.preventDefault();
+    setBankError("");
+    setBankSuccess("");
+    setBankSubmitting(true);
+    if (!bankForm.accountHolder || (!bankForm.accountNumber && !bankForm.upiId)) {
+      setBankError("Account holder and at least one payment method required");
+      setBankSubmitting(false);
+      return;
+    }
+    try {
+      const res = await fetch("https://setupxpay-backend.onrender.com/user/bank-details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: JSON.stringify(bankForm)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBankSuccess("Bank/UPI details added. Awaiting admin approval.");
+        setBankForm({ accountHolder: "", accountNumber: "", ifsc: "", upiId: "" });
+        fetchBankDetails();
+      } else {
+        setBankError(data.error || "Failed to add bank details");
+      }
+    } catch (err) {
+      setBankError("Failed to add bank details");
+    }
+    setBankSubmitting(false);
+  };
+
   if (!user || !user._id) {
     // Optionally clear localStorage if user is invalid
     localStorage.removeItem("user");
@@ -488,7 +555,15 @@ const Dashboard = () => {
                 {getKYCStatusText(kycStatus)}
               </div>
             </button>
-            <button className="flex items-center gap-3 text-gray-800 hover:text-blue-700"><FaWallet /> Bank Details</button>
+            <button 
+              onClick={() => {
+                setShowBankModal(true);
+                setShowSidebar(false);
+              }}
+              className="flex items-center gap-3 text-gray-800 hover:text-blue-700"
+            >
+              <FaWallet /> Bank Details
+            </button>
             <button 
               onClick={() => {
                 navigate("/referrals");
@@ -1174,6 +1249,66 @@ const Dashboard = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bank Details Modal */}
+      {showBankModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-2xl p-6 shadow-lg w-full max-w-lg relative">
+            <button className="absolute top-3 right-3 text-gray-500 hover:text-gray-800" onClick={() => setShowBankModal(false)}><FaTimes /></button>
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2"><FaWallet /> Bank/UPI Details</h2>
+            <div className="text-xs text-yellow-700 bg-yellow-100 rounded px-3 py-2 mb-4">
+              <b>Note:</b> Sirf apne naam ka bank account ya UPI ID add karein. Third party details admin dwara reject ho jayenge.
+            </div>
+            <form onSubmit={handleBankSubmit} className="mb-4 space-y-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium mb-1">Account Holder Name</label>
+                  <input type="text" name="accountHolder" value={bankForm.accountHolder} onChange={handleBankFormChange} className="w-full border px-2 py-1 rounded text-sm" required />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Account Number</label>
+                  <input type="text" name="accountNumber" value={bankForm.accountNumber} onChange={handleBankFormChange} className="w-full border px-2 py-1 rounded text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">IFSC Code</label>
+                  <input type="text" name="ifsc" value={bankForm.ifsc} onChange={handleBankFormChange} className="w-full border px-2 py-1 rounded text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">UPI ID</label>
+                  <input type="text" name="upiId" value={bankForm.upiId} onChange={handleBankFormChange} className="w-full border px-2 py-1 rounded text-sm" />
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 mt-1">Account Number ya UPI ID me se kam se kam ek required hai.</div>
+              {bankError && <div className="text-red-600 text-xs mt-1">{bankError}</div>}
+              {bankSuccess && <div className="text-green-600 text-xs mt-1">{bankSuccess}</div>}
+              <button type="submit" className="w-full bg-blue-600 text-white py-2 rounded font-medium mt-2" disabled={bankSubmitting}>
+                {bankSubmitting ? "Saving..." : <span className="flex items-center justify-center gap-2"><FaPlus /> Add Bank/UPI</span>}
+              </button>
+            </form>
+            <div className="mb-2 font-semibold text-sm">Your Bank/UPI Details</div>
+            {bankLoading ? <div>Loading...</div> : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {bankDetails.length === 0 && <div className="text-xs text-gray-500">No bank/UPI details added yet.</div>}
+                {bankDetails.map((bd, idx) => (
+                  <div key={idx} className="border rounded-lg px-3 py-2 flex flex-col md:flex-row md:items-center md:justify-between gap-2 text-xs">
+                    <div>
+                      <div><b>Account Holder:</b> {bd.accountHolder || "-"}</div>
+                      {bd.accountNumber && <div><b>Account No:</b> {bd.accountNumber}</div>}
+                      {bd.ifsc && <div><b>IFSC:</b> {bd.ifsc}</div>}
+                      {bd.upiId && <div><b>UPI:</b> {bd.upiId}</div>}
+                      <div className="text-gray-400 text-xs mt-1">Added: {bd.addedAt ? new Date(bd.addedAt).toLocaleString() : "-"}</div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${bd.status === "approved" ? "bg-green-100 text-green-700" : bd.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>{bd.status}</span>
+                      {bd.adminNote && <span className="text-xs text-gray-500">Note: {bd.adminNote}</span>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
