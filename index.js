@@ -34,6 +34,14 @@ app.use(cors({
 }));
 app.options('*', cors());
 
+// Catch-all CORS middleware for debugging
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*"); // For debugging only, use your domain in production
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  next();
+});
+
 // ===== Config =====
 const JWT_SECRET = "setupxpay_secret_key";
 const TATUM_API_KEY = "t-684c3a005ad68338f85afe22-1792ec2110654df39d604f3b";
