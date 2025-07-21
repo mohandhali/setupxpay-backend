@@ -15,6 +15,7 @@ const withdrawRoutes = require("./routes/withdraw");
 const Transaction = require("./models/Transaction");
 const multer = require("multer");
 const path = require("path");
+const cloudinary = require('cloudinary').v2;
 
 
 // ===== Config =====
@@ -40,7 +41,24 @@ const upload = multer({ storage });
 // Serve uploads statically
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// KYC file upload endpoint
+// Cloudinary config
+cloudinary.config({
+  cloud_name: 'dnmula0sq',
+  api_key: '286351875114958',
+  api_secret: '3erjFlmW3FSHNxfGIvNXbhs1d94',
+});
+
+// Helper to upload a file to Cloudinary
+async function uploadToCloudinary(file, folder) {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload(file.path, { folder }, (err, result) => {
+      if (err) return reject(err);
+      resolve(result.secure_url);
+    });
+  });
+}
+
+// KYC file upload endpoint (Cloudinary version)
 app.post("/kyc/upload", upload.fields([
   { name: "panCard", maxCount: 1 },
   { name: "aadharFront", maxCount: 1 },
@@ -53,9 +71,9 @@ app.post("/kyc/upload", upload.fields([
     if (!user) return res.status(404).json({ success: false, error: "User not found" });
     const files = req.files;
     const docUrls = {};
-    if (files.panCard) docUrls.panCard = `/uploads/${files.panCard[0].filename}`;
-    if (files.aadharFront) docUrls.aadharFront = `/uploads/${files.aadharFront[0].filename}`;
-    if (files.aadharBack) docUrls.aadharBack = `/uploads/${files.aadharBack[0].filename}`;
+    if (files.panCard) docUrls.panCard = await uploadToCloudinary(files.panCard[0], 'kyc_docs');
+    if (files.aadharFront) docUrls.aadharFront = await uploadToCloudinary(files.aadharFront[0], 'kyc_docs');
+    if (files.aadharBack) docUrls.aadharBack = await uploadToCloudinary(files.aadharBack[0], 'kyc_docs');
     user.kycDocuments = { ...user.kycDocuments, ...docUrls };
     await user.save();
     res.json({ success: true, kycDocuments: user.kycDocuments });
