@@ -17,6 +17,22 @@ const multer = require("multer");
 const path = require("path");
 const cloudinary = require('cloudinary').v2;
 
+// ===== CORS Middleware (must be first) =====
+app.use(cors({
+  origin: [
+    "https://setupxpay-78bb7.web.app",
+    "https://setupxpay.com",
+    "https://www.setupxpay.com",
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+}));
+app.options('*', cors());
 
 // ===== Config =====
 const JWT_SECRET = "setupxpay_secret_key";
@@ -109,23 +125,6 @@ function decryptPrivateKey(encryptedPrivateKey) {
   return decrypted;
 }
 
-// CORS middleware at the very top
-app.use(cors({
-  origin: [
-    "https://setupxpay-78bb7.web.app",
-    "https://setupxpay.com",
-    "https://www.setupxpay.com",
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:3001"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-}));
-// Handle preflight requests for all routes
-app.options('*', cors());
 // 👇 Place webhook raw middleware BEFORE express.json()
 app.use("/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
