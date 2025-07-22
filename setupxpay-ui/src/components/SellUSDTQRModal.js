@@ -396,74 +396,27 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
 
           {step === "details" && (
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-600 mb-1">Select Payout Method (Approved Only)</label>
-                {/* The following block is no longer needed as UPI/Bank is entered manually */}
-                {/* {approvedBankDetails.length === 0 ? (
-                  <div className="text-xs text-red-600">No approved bank/UPI details found. Please add and wait for admin approval.</div>
-                ) : (
-                  <div className="flex flex-col gap-3">
-                    {approvedBankDetails.map((bd, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        className={`w-full text-left border rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 shadow-sm transition-all ${selectedBankIdx === idx ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white hover:border-blue-300"}`}
-                        onClick={() => setSelectedBankIdx(idx)}
-                      >
-                        <div>
-                          <div className="font-semibold text-gray-800">{bd.accountHolder}</div>
-                          {bd.upiId && <div className="text-xs text-gray-600">UPI: <span className="font-mono">{bd.upiId}</span></div>}
-                          {bd.accountNumber && <div className="text-xs text-gray-600">A/C: <span className="font-mono">{bd.accountNumber}</span> {bd.ifsc && <span>IFSC: {bd.ifsc}</span>}</div>}
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${bd.status === "approved" ? "bg-green-100 text-green-700" : bd.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>{bd.status}</span>
-                          {bd.adminNote && <span className="text-xs text-gray-500">Note: {bd.adminNote}</span>}
-                          {selectedBankIdx === idx && <span className="text-xs text-blue-600 font-semibold mt-1">Selected</span>}
-                        </div>
-                      </button>
-                    ))}
+              {/* Show selected payout details */}
+              <div className="bg-blue-50 rounded-lg p-3 mb-2 mt-2">
+                <div className="text-xs text-gray-500 mb-1">Account Holder</div>
+                <div className="font-semibold text-gray-800">{merchantName}</div>
+                {upiId && <><div className="text-xs text-gray-500 mt-2">UPI ID</div><div className="font-mono text-xs break-all">{upiId}</div></>}
+                {/* {approvedBankDetails[selectedBankIdx] && (
+                  <div className="text-sm text-gray-800">
+                    <b>UPI ID:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].upiId}</span>
+                  </div>
+                )} */}
+                {/* {approvedBankDetails[selectedBankIdx] && (
+                  <div className="text-sm text-gray-800">
+                    <b>Account No:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].accountNumber}</span>
+                  </div>
+                )} */}
+                {/* {approvedBankDetails[selectedBankIdx] && (
+                  <div className="text-sm text-gray-800">
+                    <b>IFSC:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].ifsc}</span>
                   </div>
                 )} */}
               </div>
-              {/* Add a Payment Method summary box in the details step, always visible if a payout method is selected */}
-              {/* This block is no longer needed as UPI/Bank is entered manually */}
-              {/* {step === "details" && approvedBankDetails[selectedBankIdx] && (
-                <div className="bg-green-50 border border-green-300 rounded-lg p-4 mb-4 flex flex-col gap-1">
-                  <div className="font-semibold text-green-800 text-base mb-1">Payment Method</div>
-                  <div className="text-sm text-gray-800">
-                    <b>Account Holder:</b> {approvedBankDetails[selectedBankIdx].accountHolder}
-                  </div>
-                  {approvedBankDetails[selectedBankIdx].upiId && (
-                    <div className="text-sm text-gray-800">
-                      <b>UPI ID:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].upiId}</span>
-                    </div>
-                  )}
-                  {approvedBankDetails[selectedBankIdx].accountNumber && (
-                    <div className="text-sm text-gray-800">
-                      <b>Account No:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].accountNumber}</span>
-                    </div>
-                  )}
-                  {approvedBankDetails[selectedBankIdx].ifsc && (
-                    <div className="text-sm text-gray-800">
-                      <b>IFSC:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].ifsc}</span>
-                    </div>
-                  )}
-                  {approvedBankDetails[selectedBankIdx].adminNote && (
-                    <div className="text-xs text-gray-500 mt-1">Note: {approvedBankDetails[selectedBankIdx].adminNote}</div>
-                  )}
-                </div>
-              )} */}
-              {/* Show selected payout details */}
-              {/* This block is no longer needed as UPI/Bank is entered manually */}
-              {/* {approvedBankDetails[selectedBankIdx] && (
-                <div className="bg-blue-50 rounded-lg p-3 mb-2 mt-2">
-                  <div className="text-xs text-gray-500 mb-1">Account Holder</div>
-                  <div className="font-semibold text-gray-800">{approvedBankDetails[selectedBankIdx].accountHolder}</div>
-                  {approvedBankDetails[selectedBankIdx].upiId && <><div className="text-xs text-gray-500 mt-2">UPI ID</div><div className="font-mono text-xs break-all">{approvedBankDetails[selectedBankIdx].upiId}</div></>}
-                  {approvedBankDetails[selectedBankIdx].accountNumber && <><div className="text-xs text-gray-500 mt-2">Account No</div><div className="font-mono text-xs break-all">{approvedBankDetails[selectedBankIdx].accountNumber}</div></>}
-                  {approvedBankDetails[selectedBankIdx].ifsc && <><div className="text-xs text-gray-500 mt-2">IFSC</div><div className="font-mono text-xs break-all">{approvedBankDetails[selectedBankIdx].ifsc}</div></>}
-                </div>
-              )} */}
               {/* INR Amount input and live USDT calculation */}
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Enter INR Amount</label>
