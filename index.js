@@ -402,11 +402,13 @@ app.post("/send-usdt", async (req, res) => {
       }
       try {
         console.log(`🔄 Attempting BEP20 transfer: ${amountStr} USDT to ${to}`);
-        const tx = await axios.post("https://api.tatum.io/v3/bsc/transaction", {
+        const tx = await axios.post("https://api.tatum.io/v3/blockchain/token/transaction", {
+          chain: "BSC",
           to,
+          contractAddress: BEP20_USDT_CONTRACT,
           amount: amountStr,
-          fromPrivateKey: senderPrivateKey,
-          contractAddress: BEP20_USDT_CONTRACT
+          digits: 18,
+          fromPrivateKey: senderPrivateKey
         }, {
           headers: {
             "x-api-key": TATUM_API_KEY,
@@ -667,11 +669,13 @@ app.post("/webhook", async (req, res) => {
     let txRes, txId;
     if (wallet.startsWith('0x')) {
       // BSC/BEP20 transfer
-      txRes = await axios.post("https://api.tatum.io/v3/bsc/transaction", {
+      txRes = await axios.post("https://api.tatum.io/v3/blockchain/token/transaction", {
+        chain: "BSC",
         to: wallet,
+        contractAddress: BEP20_USDT_CONTRACT,
         amount: usdtAmount,
-        fromPrivateKey: BSC_POOL_PRIVATE_KEY,
-        contractAddress: BEP20_USDT_CONTRACT
+        digits: 18,
+        fromPrivateKey: BSC_POOL_PRIVATE_KEY
       }, {
         headers: { "x-api-key": TATUM_API_KEY, "Content-Type": "application/json" }
       });
