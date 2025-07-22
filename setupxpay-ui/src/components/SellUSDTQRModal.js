@@ -383,6 +383,33 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
                   </div>
                 )}
               </div>
+              {/* Add a Payment Method summary box in the details step, always visible if a payout method is selected */}
+              {step === "details" && approvedBankDetails[selectedBankIdx] && (
+                <div className="bg-green-50 border border-green-300 rounded-lg p-4 mb-4 flex flex-col gap-1">
+                  <div className="font-semibold text-green-800 text-base mb-1">Payment Method</div>
+                  <div className="text-sm text-gray-800">
+                    <b>Account Holder:</b> {approvedBankDetails[selectedBankIdx].accountHolder}
+                  </div>
+                  {approvedBankDetails[selectedBankIdx].upiId && (
+                    <div className="text-sm text-gray-800">
+                      <b>UPI ID:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].upiId}</span>
+                    </div>
+                  )}
+                  {approvedBankDetails[selectedBankIdx].accountNumber && (
+                    <div className="text-sm text-gray-800">
+                      <b>Account No:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].accountNumber}</span>
+                    </div>
+                  )}
+                  {approvedBankDetails[selectedBankIdx].ifsc && (
+                    <div className="text-sm text-gray-800">
+                      <b>IFSC:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].ifsc}</span>
+                    </div>
+                  )}
+                  {approvedBankDetails[selectedBankIdx].adminNote && (
+                    <div className="text-xs text-gray-500 mt-1">Note: {approvedBankDetails[selectedBankIdx].adminNote}</div>
+                  )}
+                </div>
+              )}
               {/* Show selected payout details */}
               {approvedBankDetails[selectedBankIdx] && (
                 <div className="bg-blue-50 rounded-lg p-3 mb-2 mt-2">
