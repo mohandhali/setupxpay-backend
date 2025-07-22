@@ -10,7 +10,8 @@ const BuyUSDTModal = ({ trc20Address, bep20Address, onClose, onPaymentSuccess })
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [network, setNetwork] = useState("trc20");
 
-  const getAddressForNetwork = () => (network === "bep20" ? bep20Address : trc20Address);
+  // Use the correct BSC pool address for testnet
+  const getAddressForNetwork = () => (network === "bep20" ? "0xC7894a2f14a7d9002dECBac352450B167374467c" : trc20Address);
 
   useEffect(() => {
     const fetchRate = async () => {

@@ -26,7 +26,8 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
 
   // SetupXPay liquidity pool addresses (example)
   const setupxWalletAddressTRC = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
-  const setupxWalletAddressBEP = "0x015B50b700853E29F331B2138721447FEC773f29";
+  // Use the correct BSC pool address for testnet
+  const setupxWalletAddressBEP = "0xC7894a2f14a7d9002dECBac352450B167374467c";
 
   const getAddressForNetwork = () => (network === "bep20" ? bep20Address : trc20Address);
   const getSetupxWalletForNetwork = () => (network === "bep20" ? setupxWalletAddressBEP : setupxWalletAddressTRC);
