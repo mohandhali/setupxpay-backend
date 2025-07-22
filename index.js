@@ -404,7 +404,7 @@ app.post("/send-usdt", async (req, res) => {
         console.log(`🔄 Attempting BEP20 transfer: ${amountStr} USDT to ${to}`);
         const tx = await axios.post("https://api.tatum.io/v3/bsc/transaction", {
           to,
-          currency: "USDT",
+          currency: "USDT_BSC",
           amount: amountStr,
           fromPrivateKey: senderPrivateKey,
           contractAddress: BEP20_USDT_CONTRACT
@@ -670,7 +670,7 @@ app.post("/webhook", async (req, res) => {
       // BSC/BEP20 transfer
       txRes = await axios.post("https://api.tatum.io/v3/bsc/transaction", {
         to: wallet,
-        currency: "USDT",
+        currency: "USDT_BSC",
         amount: usdtAmount,
         fromPrivateKey: BSC_POOL_PRIVATE_KEY,
         contractAddress: BEP20_USDT_CONTRACT
