@@ -17,6 +17,11 @@ const multer = require("multer");
 const path = require("path");
 const cloudinary = require('cloudinary').v2;
 
+// ===== BSC Testnet Pool Config =====
+const BSC_POOL_ADDRESS = "0xC7894a2f14a7d9002dECBac352450B167374467c";
+const BSC_POOL_PRIVATE_KEY = "78b2b5e84134d151fdafa309101509b361c6cb4803b13e43ae4f745d33b52b10";
+const BEP20_USDT_CONTRACT = "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd";
+
 // ===== CORS Middleware (must be first) =====
 app.use(cors({
   origin: [
@@ -378,22 +383,27 @@ app.post("/send-usdt", async (req, res) => {
     // === Network-specific USDT transfer ===
     if (network === "bep20") {
       // BEP20 (BSC) USDT transfer
-      // Using testnet BEP20 USDT contract address
-      const BEP20_USDT_CONTRACT = "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd"; // BSC Testnet USDT
-      
+      // Use BSC testnet pool config
+      const BEP20_USDT_CONTRACT = "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd"; // Already defined at top, keep for clarity
+      let senderAddress = user.bep20Address;
+      let senderPrivateKey = fromPrivateKey;
+      // If the sender is the pool (for payouts), use pool private key/address
+      if (senderAddress === BSC_POOL_ADDRESS || user.isPool) {
+        senderAddress = BSC_POOL_ADDRESS;
+        senderPrivateKey = BSC_POOL_PRIVATE_KEY;
+      }
       // Validate amount for BEP20
       const amount = parseFloat(amountStr);
       if (isNaN(amount) || amount <= 0) {
         return res.status(400).json({ success: false, error: "Invalid amount for BEP20 transfer" });
       }
-      
       try {
         console.log(`🔄 Attempting BEP20 transfer: ${amountStr} USDT to ${to}`);
         const tx = await axios.post("https://api.tatum.io/v3/bsc/transaction", {
           to,
           currency: "USDT",
           amount: amountStr,
-          fromPrivateKey,
+          fromPrivateKey: senderPrivateKey,
           contractAddress: BEP20_USDT_CONTRACT
         }, {
           headers: {
