@@ -5,116 +5,121 @@ import SuccessModal from "./SuccessModal";
 const WithdrawINRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
     console.log("🧾 Passed userId to WithdrawINRModal:", userId);
   const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState("upi"); // "upi" or "bank"
-  const [accountHolder, setAccountHolder] = useState("");
-  const [accountNumber, setAccountNumber] = useState("");
-  const [ifsc, setIfsc] = useState("");
-  const [upiId, setUpiId] = useState("");
+  const [approvedBankDetails, setApprovedBankDetails] = useState([]);
+  const [selectedBankIdx, setSelectedBankIdx] = useState(0);
   const [showBiometricAuth, setShowBiometricAuth] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successDetails, setSuccessDetails] = useState({});
   const [processing, setProcessing] = useState(false);
   const [network, setNetwork] = useState("trc20");
+  const [rate, setRate] = useState(null);
+  const [platformFee, setPlatformFee] = useState(1);
+  const [networkFee, setNetworkFee] = useState(5);
 
   useEffect(() => {
-    console.log("WithdrawINRModal userId:", userId);
+    // Fetch approved payout methods
+    const fetchApprovedBankDetails = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("https://setupxpay-backend.onrender.com/user/bank-details", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          const approved = (data.bankDetails || []).filter(bd => bd.status === "approved");
+          setApprovedBankDetails(approved);
+          setSelectedBankIdx(0);
+        } else {
+          setApprovedBankDetails([]);
+        }
+      } catch {
+        setApprovedBankDetails([]);
+      }
+    };
+    fetchApprovedBankDetails();
   }, [userId]);
 
+  useEffect(() => {
+    // Fetch live rate and update network fee
+    const fetchRate = async () => {
+      try {
+        const res = await fetch("https://setupxpay-backend.onrender.com/rate");
+        const data = await res.json();
+        setRate(data?.sell || 95);
+      } catch {
+        setRate(95);
+      }
+    };
+    fetchRate();
+    setNetworkFee(network === "bep20" ? 1 : 5);
+  }, [network]);
+
   const getAddressForNetwork = () => (network === "bep20" ? bep20Address : trc20Address);
-  const getFeeForNetwork = () => (network === "bep20" ? 1 : 5); // Example: lower fee for BEP20
+
+  const calculateUSDT = () => {
+    const amt = parseFloat(amount);
+    if (!amt || !rate) return "0.00";
+    const net = amt - platformFee - networkFee;
+    return net > 0 ? (net / rate).toFixed(2) : "0.00";
+  };
 
   const handleWithdraw = async () => {
     if (!amount) {
       alert("Please enter amount");
       return;
     }
-
-    const payload = {
-      userId,
-      amount,
-      bankDetails: {},
-      network,
-    };
-
-    if (method === "upi") {
-      if (!upiId.trim()) {
-        alert("Please enter UPI ID");
-        return;
-      }
-      payload.bankDetails.upiId = upiId;
-    } else {
-      if (!accountHolder || !accountNumber || !ifsc) {
-        alert("Please fill all bank details");
-        return;
-      }
-      payload.bankDetails = {
-        accountHolder,
-        accountNumber,
-        ifsc,
-      };
+    const payout = approvedBankDetails[selectedBankIdx];
+    if (!payout) {
+      alert("Please select an approved payout method");
+      return;
     }
-
-    // Show biometric authentication first
     setShowBiometricAuth(true);
   };
 
   const handleBiometricSuccess = async () => {
     setShowBiometricAuth(false);
     setProcessing(true);
-
     if (!userId) {
       alert("User ID missing. Please re-login.");
       setProcessing(false);
       return;
     }
-
     try {
+      const payout = approvedBankDetails[selectedBankIdx];
       const payload = {
         userId,
         amount,
         bankDetails: {},
         network,
       };
-
-      if (method === "upi") {
-        payload.bankDetails.upiId = upiId;
+      if (payout.upiId) {
+        payload.bankDetails.upiId = payout.upiId;
       } else {
         payload.bankDetails = {
-          accountHolder,
-          accountNumber,
-          ifsc,
+          accountHolder: payout.accountHolder,
+          accountNumber: payout.accountNumber,
+          ifsc: payout.ifsc,
         };
       }
-
       // Step 1: Get user's private key from backend
       const keyRes = await fetch("https://setupxpay-backend.onrender.com/get-user-private-key", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, network }),
       });
-
       const keyData = await keyRes.json();
-      
       if (!keyData.success) {
         alert("❌ Failed to get wallet access: " + (keyData.error || "Unknown error"));
         setProcessing(false);
         return;
       }
-
       const privateKey = keyData.privateKey;
-
       // Step 2: Calculate USDT amount
-      const rate = 95; // You can fetch this from API
-      const platformFee = 1;
-      const fee = getFeeForNetwork();
-      const netInr = parseFloat(amount) - platformFee - fee;
-      const usdtAmount = (netInr / rate).toFixed(2);
-
+      const usdtAmount = calculateUSDT();
       // Step 3: Send USDT to SetupXPay liquidity pool
       const setupxWalletAddressTRC = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
       const setupxWalletAddressBEP = "0x015B50b700853E29F331B2138721447FEC773f29";
       const setupxWalletAddress = network === "bep20" ? setupxWalletAddressBEP : setupxWalletAddressTRC;
-      
       const sendRes = await fetch("https://setupxpay-backend.onrender.com/send-usdt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -126,32 +131,25 @@ const WithdrawINRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
           network,
         }),
       });
-
       const sendData = await sendRes.json();
       if (!sendData.success) {
         alert("❌ USDT transfer failed: " + (sendData.error || "Unknown error"));
         setProcessing(false);
         return;
       }
-
       // Step 4: Send INR to user via withdraw endpoint
       const withdrawRes = await fetch("https://setupxpay-backend.onrender.com/withdraw/inr-mock", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       const withdrawData = await withdrawRes.json();
-
       if (withdrawData.success) {
-        // Show success modal with details
         setSuccessDetails({
           "USDT Sent": `${usdtAmount} USDT`,
           "INR Amount": `₹${amount}`,
-          "Method": method === "upi" ? "UPI" : "Bank Transfer",
-          "Recipient": method === "upi" ? upiId : `${accountHolder} (${accountNumber})`,
+          "Method": payout.upiId ? "UPI" : "Bank Transfer",
+          "Recipient": payout.upiId ? payout.upiId : `${payout.accountHolder} (${payout.accountNumber})`,
           "Transaction ID": sendData.txId,
           "Rate": `₹${rate}`,
           "Network": network.toUpperCase(),
@@ -178,7 +176,6 @@ const WithdrawINRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
         </button>
         <h2 className="text-xl font-semibold text-gray-800">Sell USDT for INR</h2>
       </div>
-
       {/* Content */}
       <div className="flex-1 p-6 overflow-auto">
         {/* Network Selector */}
@@ -198,122 +195,101 @@ const WithdrawINRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
           <span className="text-xs text-gray-500">Your {network.toUpperCase()} Address:</span>
           <div className="font-mono text-xs break-all">{getAddressForNetwork()}</div>
         </div>
-
+        {/* Approved payout methods as cards */}
         <div className="mb-6">
-          <label className="block mb-3 font-semibold text-gray-700">Payment Method:</label>
-          <div className="flex gap-4">
-            <label className="flex-1">
-              <input
-                type="radio"
-                value="upi"
-                checked={method === "upi"}
-                onChange={() => setMethod("upi")}
-                className="hidden"
-              />
-              <div className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                method === "upi" 
-                  ? "border-blue-500 bg-blue-50" 
-                  : "border-gray-200 hover:border-gray-300"
-              }`}>
-                <div className="text-center">
-                  <div className="text-2xl mb-2">📱</div>
-                  <span className="font-medium">UPI</span>
-                </div>
-              </div>
-            </label>
-            <label className="flex-1">
-              <input
-                type="radio"
-                value="bank"
-                checked={method === "bank"}
-                onChange={() => setMethod("bank")}
-                className="hidden"
-              />
-              <div className={`p-4 border-2 rounded-xl cursor-pointer transition-all ${
-                method === "bank" 
-                  ? "border-blue-500 bg-blue-50" 
-                  : "border-gray-200 hover:border-gray-300"
-              }`}>
-                <div className="text-center">
-                  <div className="text-2xl mb-2">🏦</div>
-                  <span className="font-medium">Bank Transfer</span>
-                </div>
-              </div>
-            </label>
-          </div>
+          <label className="block mb-3 font-semibold text-gray-700">Select Payout Method (Approved Only):</label>
+          {approvedBankDetails.length === 0 ? (
+            <div className="text-xs text-red-600">No approved bank/UPI details found. Please add and wait for admin approval.</div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {approvedBankDetails.map((bd, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  className={`w-full text-left border rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 shadow-sm transition-all ${selectedBankIdx === idx ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white hover:border-blue-300"}`}
+                  onClick={() => setSelectedBankIdx(idx)}
+                >
+                  <div>
+                    <div className="font-semibold text-gray-800">{bd.accountHolder}</div>
+                    {bd.upiId && <div className="text-xs text-gray-600">UPI: <span className="font-mono">{bd.upiId}</span></div>}
+                    {bd.accountNumber && <div className="text-xs text-gray-600">A/C: <span className="font-mono">{bd.accountNumber}</span> {bd.ifsc && <span>IFSC: {bd.ifsc}</span>}</div>}
+                  </div>
+                  <div className="flex flex-col items-end">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${bd.status === "approved" ? "bg-green-100 text-green-700" : bd.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>{bd.status}</span>
+                    {bd.adminNote && <span className="text-xs text-gray-500">Note: {bd.adminNote}</span>}
+                    {selectedBankIdx === idx && <span className="text-xs text-blue-600 font-semibold mt-1">Selected</span>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-
-        <div className="mb-6">
-          <label className="block mb-2 font-semibold text-gray-700">Amount (₹)</label>
+        {/* Payment Method summary box */}
+        {approvedBankDetails[selectedBankIdx] && (
+          <div className="bg-green-50 border border-green-300 rounded-lg p-4 mb-4 flex flex-col gap-1">
+            <div className="font-semibold text-green-800 text-base mb-1">Payment Method</div>
+            <div className="text-sm text-gray-800">
+              <b>Account Holder:</b> {approvedBankDetails[selectedBankIdx].accountHolder}
+            </div>
+            {approvedBankDetails[selectedBankIdx].upiId && (
+              <div className="text-sm text-gray-800">
+                <b>UPI ID:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].upiId}</span>
+              </div>
+            )}
+            {approvedBankDetails[selectedBankIdx].accountNumber && (
+              <div className="text-sm text-gray-800">
+                <b>Account No:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].accountNumber}</span>
+              </div>
+            )}
+            {approvedBankDetails[selectedBankIdx].ifsc && (
+              <div className="text-sm text-gray-800">
+                <b>IFSC:</b> <span className="font-mono">{approvedBankDetails[selectedBankIdx].ifsc}</span>
+              </div>
+            )}
+            {approvedBankDetails[selectedBankIdx].adminNote && (
+              <div className="text-xs text-gray-500 mt-1">Note: {approvedBankDetails[selectedBankIdx].adminNote}</div>
+            )}
+          </div>
+        )}
+        {/* INR Amount input and live USDT calculation */}
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1">Enter INR Amount</label>
           <input
             type="number"
-            placeholder="Enter amount in INR"
+            placeholder="e.g. 1000"
+            className="w-full border px-4 py-2 rounded-lg text-sm outline-blue-600"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
+            onChange={e => setAmount(e.target.value)}
           />
+          <div className="bg-gray-100 rounded-xl p-4 space-y-2 text-sm mt-2">
+            <p className="flex justify-between text-gray-700">
+              <span>Live Rate</span>
+              <span className="font-semibold">₹{rate || "-"} / USDT</span>
+            </p>
+            <p className="flex justify-between text-gray-700">
+              <span>Platform Fee</span>
+              <span>₹{platformFee}</span>
+            </p>
+            <p className="flex justify-between text-gray-700">
+              <span>Network Fee</span>
+              <span>₹{networkFee}</span>
+            </p>
+            <p className="flex justify-between text-gray-900 font-semibold">
+              <span>USDT to be deducted</span>
+              <span>{calculateUSDT()}</span>
+            </p>
+          </div>
         </div>
-
-        {/* Conditional Fields */}
-        {method === "upi" && (
-          <div className="mb-6">
-            <label className="block mb-2 font-semibold text-gray-700">UPI ID</label>
-            <input
-              type="text"
-              placeholder="Enter your UPI ID (e.g., 1234567890@ybl)"
-              value={upiId}
-              onChange={(e) => setUpiId(e.target.value)}
-              className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
-            />
-          </div>
-        )}
-
-        {method === "bank" && (
-          <div className="space-y-4 mb-6">
-            <div>
-              <label className="block mb-2 font-semibold text-gray-700">Account Holder Name</label>
-              <input
-                type="text"
-                placeholder="Enter account holder name"
-                value={accountHolder}
-                onChange={(e) => setAccountHolder(e.target.value)}
-                className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
-              />
-            </div>
-            <div>
-              <label className="block mb-2 font-semibold text-gray-700">Account Number</label>
-              <input
-                type="text"
-                placeholder="Enter account number"
-                value={accountNumber}
-                onChange={(e) => setAccountNumber(e.target.value)}
-                className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
-              />
-            </div>
-            <div>
-              <label className="block mb-2 font-semibold text-gray-700">IFSC Code</label>
-              <input
-                type="text"
-                placeholder="Enter IFSC code"
-                value={ifsc}
-                onChange={(e) => setIfsc(e.target.value)}
-                className="w-full p-4 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:outline-none text-lg"
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="flex gap-4">
+        <div className="flex gap-4 mt-6">
           <button
             onClick={handleWithdraw}
-            disabled={processing}
+            disabled={processing || approvedBankDetails.length === 0 || !amount || parseFloat(amount) <= 0}
             className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-semibold hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg disabled:opacity-50"
           >
             {processing ? "Processing..." : "Sell USDT"}
           </button>
         </div>
       </div>
-
       {/* Biometric Authentication Modal */}
       {showBiometricAuth && (
         <BiometricAuth
@@ -322,7 +298,6 @@ const WithdrawINRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
           message="Authenticate to complete USDT sale"
         />
       )}
-
       {/* Success Modal */}
       <SuccessModal
         isOpen={showSuccessModal}
