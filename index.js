@@ -383,6 +383,9 @@ app.post("/send-usdt", async (req, res) => {
     // === Network-specific USDT transfer ===
     if (network === "bep20") {
       // BEP20 (BSC) USDT transfer
+      if (!to.startsWith("0x")) {
+        return res.status(400).json({ success: false, error: "BSC address must start with 0x" });
+      }
       // Use BSC testnet pool config
       const BEP20_USDT_CONTRACT = "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd"; // Already defined at top, keep for clarity
       let senderAddress = user.bep20Address;
@@ -439,8 +442,11 @@ app.post("/send-usdt", async (req, res) => {
           details: err.response?.data 
         });
       }
-    } else {
+    } else if (network === "trc20") {
       // TRC20 (Tron) USDT transfer
+      if (!to.startsWith("T")) {
+        return res.status(400).json({ success: false, error: "TRON address must start with T" });
+      }
       try {
         const tx = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
           to,
@@ -474,6 +480,8 @@ app.post("/send-usdt", async (req, res) => {
         console.log("✅ USDT transfer successful with higher fee:", tx.data.txId);
         return res.json({ success: true, txId: tx.data.txId });
       }
+    } else {
+      return res.status(400).json({ success: false, error: "Unsupported network. Use 'bep20' or 'trc20' only." });
     }
   } catch (err) {
     console.error("❌ Send failed:", err.response?.data || err.message);
