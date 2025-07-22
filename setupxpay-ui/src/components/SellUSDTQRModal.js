@@ -147,9 +147,11 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
 
   const calculateUSDT = () => {
     const amt = parseFloat(amountInr);
-    if (!amt) return 0;
-    const net = amt - platformFee - networkFee;
-    return (net / rate).toFixed(2);
+    if (!amt || !rate) return "0.00";
+    const totalInr = amt + platformFee + networkFee;
+    let usdt = totalInr / rate;
+    usdt = Math.ceil(usdt * 100) / 100; // round up to 2 decimals
+    return usdt < 1 ? "1.00" : usdt.toFixed(2);
   };
 
   const handleSell = async () => {
@@ -445,12 +447,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
                   </p>
                   <p className="flex justify-between text-gray-900 font-semibold">
                     <span>USDT to be deducted</span>
-                    <span>{(() => {
-                      const amt = parseFloat(amountInr);
-                      if (!amt || !rate) return "0.00";
-                      const net = amt - platformFee - networkFee;
-                      return net > 0 ? (net / rate).toFixed(2) : "0.00";
-                    })()}</span>
+                    <span>{calculateUSDT()}</span>
                   </p>
                 </div>
               </div>
