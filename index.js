@@ -665,17 +665,34 @@ app.post("/webhook", async (req, res) => {
   try {
     const usdtAmount = (amountInr / liveRateData.userRate).toFixed(2);
 
-    const txRes = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
-      to: wallet,
-      amount: usdtAmount,
-      fromPrivateKey: SENDER_PRIVATE_KEY,
-      tokenAddress: TOKEN_ADDRESS,
-      feeLimit: 1000,
-    }, {
-      headers: { "x-api-key": TATUM_API_KEY, "Content-Type": "application/json" }
-    });
-
-    const txId = txRes?.data?.txId || "unknown";
+    let txRes, txId;
+    if (wallet.startsWith('0x')) {
+      // BSC/BEP20 transfer
+      txRes = await axios.post("https://api.tatum.io/v3/bsc/transaction", {
+        to: wallet,
+        currency: "USDT",
+        amount: usdtAmount,
+        fromPrivateKey: BSC_POOL_PRIVATE_KEY,
+        contractAddress: BEP20_USDT_CONTRACT
+      }, {
+        headers: { "x-api-key": TATUM_API_KEY, "Content-Type": "application/json" }
+      });
+      txId = txRes?.data?.txId || "unknown";
+    } else if (wallet.startsWith('T')) {
+      // TRON transfer
+      txRes = await axios.post("https://api.tatum.io/v3/tron/trc20/transaction", {
+        to: wallet,
+        amount: usdtAmount,
+        fromPrivateKey: SENDER_PRIVATE_KEY,
+        tokenAddress: TOKEN_ADDRESS,
+        feeLimit: 1000,
+      }, {
+        headers: { "x-api-key": TATUM_API_KEY, "Content-Type": "application/json" }
+      });
+      txId = txRes?.data?.txId || "unknown";
+    } else {
+      throw new Error("Unsupported wallet address format");
+    }
 
     await Transaction.create({
       type: "deposit",
