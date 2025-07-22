@@ -9,10 +9,10 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
   const [upiId, setUpiId] = useState("");
   const [merchantName, setMerchantName] = useState("");
   const [amountInr, setAmountInr] = useState("");
-  const [rate, setRate] = useState(95);
-  const platformFee = 1;
-  const trcFee = 5;
-  const bepFee = 1; // Example: lower fee for BEP20
+  // 1. Add state for live rate
+  const [rate, setRate] = useState(null);
+  const [platformFee, setPlatformFee] = useState(1);
+  const [networkFee, setNetworkFee] = useState(5); // default for TRC20
   const [network, setNetwork] = useState("trc20");
   const [processing, setProcessing] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
@@ -30,7 +30,22 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
 
   const getAddressForNetwork = () => (network === "bep20" ? bep20Address : trc20Address);
   const getSetupxWalletForNetwork = () => (network === "bep20" ? setupxWalletAddressBEP : setupxWalletAddressTRC);
-  const getFeeForNetwork = () => (network === "bep20" ? bepFee : trcFee);
+  const getFeeForNetwork = () => (network === "bep20" ? 1 : 5); // This function is no longer needed for the new UI
+
+  // 2. Fetch live rate and update network fee on open/network change
+  useEffect(() => {
+    const fetchRate = async () => {
+      try {
+        const res = await fetch("https://setupxpay-backend.onrender.com/rate");
+        const data = await res.json();
+        setRate(data?.sell || 95);
+      } catch {
+        setRate(95);
+      }
+    };
+    fetchRate();
+    setNetworkFee(network === "bep20" ? 1 : 5);
+  }, [network]);
 
   // Fetch approved bank/UPI details on open
   useEffect(() => {
@@ -133,7 +148,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
   const calculateUSDT = () => {
     const amt = parseFloat(amountInr);
     if (!amt) return 0;
-    const net = amt - platformFee - getFeeForNetwork();
+    const net = amt - platformFee - networkFee;
     return (net / rate).toFixed(2);
   };
 
@@ -340,36 +355,45 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
 
           {step === "details" && (
             <div className="space-y-4">
-              {/* Payout Method Selector */}
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Select Payout Method (Approved Only)</label>
                 {approvedBankDetails.length === 0 ? (
                   <div className="text-xs text-red-600">No approved bank/UPI details found. Please add and wait for admin approval.</div>
                 ) : (
-                  <select
-                    value={selectedBankIdx}
-                    onChange={e => setSelectedBankIdx(Number(e.target.value))}
-                    className="w-full border px-4 py-2 rounded-lg text-sm outline-blue-600 mb-2"
-                  >
+                  <div className="flex flex-col gap-3">
                     {approvedBankDetails.map((bd, idx) => (
-                      <option value={idx} key={idx}>
-                        {bd.upiId ? `UPI: ${bd.upiId}` : `Bank: ${bd.accountNumber} (${bd.accountHolder})`} {bd.adminNote ? `- Note: ${bd.adminNote}` : ""}
-                      </option>
+                      <button
+                        key={idx}
+                        type="button"
+                        className={`w-full text-left border rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2 shadow-sm transition-all ${selectedBankIdx === idx ? "border-blue-600 bg-blue-50" : "border-gray-200 bg-white hover:border-blue-300"}`}
+                        onClick={() => setSelectedBankIdx(idx)}
+                      >
+                        <div>
+                          <div className="font-semibold text-gray-800">{bd.accountHolder}</div>
+                          {bd.upiId && <div className="text-xs text-gray-600">UPI: <span className="font-mono">{bd.upiId}</span></div>}
+                          {bd.accountNumber && <div className="text-xs text-gray-600">A/C: <span className="font-mono">{bd.accountNumber}</span> {bd.ifsc && <span>IFSC: {bd.ifsc}</span>}</div>}
+                        </div>
+                        <div className="flex flex-col items-end">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${bd.status === "approved" ? "bg-green-100 text-green-700" : bd.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>{bd.status}</span>
+                          {bd.adminNote && <span className="text-xs text-gray-500">Note: {bd.adminNote}</span>}
+                          {selectedBankIdx === idx && <span className="text-xs text-blue-600 font-semibold mt-1">Selected</span>}
+                        </div>
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 )}
               </div>
               {/* Show selected payout details */}
               {approvedBankDetails[selectedBankIdx] && (
-                <div className="bg-blue-50 rounded-lg p-3 mb-2">
+                <div className="bg-blue-50 rounded-lg p-3 mb-2 mt-2">
                   <div className="text-xs text-gray-500 mb-1">Account Holder</div>
                   <div className="font-semibold text-gray-800">{approvedBankDetails[selectedBankIdx].accountHolder}</div>
                   {approvedBankDetails[selectedBankIdx].upiId && <><div className="text-xs text-gray-500 mt-2">UPI ID</div><div className="font-mono text-xs break-all">{approvedBankDetails[selectedBankIdx].upiId}</div></>}
                   {approvedBankDetails[selectedBankIdx].accountNumber && <><div className="text-xs text-gray-500 mt-2">Account No</div><div className="font-mono text-xs break-all">{approvedBankDetails[selectedBankIdx].accountNumber}</div></>}
                   {approvedBankDetails[selectedBankIdx].ifsc && <><div className="text-xs text-gray-500 mt-2">IFSC</div><div className="font-mono text-xs break-all">{approvedBankDetails[selectedBankIdx].ifsc}</div></>}
-                  {approvedBankDetails[selectedBankIdx].adminNote && <div className="text-xs text-gray-500 mt-2">Note: {approvedBankDetails[selectedBankIdx].adminNote}</div>}
                 </div>
               )}
+              {/* INR Amount input and live USDT calculation */}
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Enter INR Amount</label>
                 <input
@@ -377,41 +401,38 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
                   placeholder="e.g. 1000"
                   className="w-full border px-4 py-2 rounded-lg text-sm outline-blue-600"
                   value={amountInr}
-                  onChange={(e) => setAmountInr(e.target.value)}
+                  onChange={e => setAmountInr(e.target.value)}
                 />
-              </div>
-              <div className="bg-gray-100 rounded-xl p-4 space-y-2 text-sm">
-                <p className="flex justify-between text-gray-700">
-                  <span>Live Rate</span>
-                  <span>₹{rate || "--"}</span>
-                </p>
-                <p className="flex justify-between text-gray-700">
-                  <span>Platform Fee</span>
-                  <span>₹{platformFee}</span>
-                </p>
-                <p className="flex justify-between text-gray-700">
-                  <span>{network.toUpperCase()} Fee</span>
-                  <span>₹{getFeeForNetwork()}</span>
-                </p>
-                <hr />
-                <p className="flex justify-between font-semibold text-blue-700 text-base">
-                  <span>USDT You’ll Sell</span>
-                  <span>{calculateUSDT()}</span>
-                </p>
+                <div className="bg-gray-100 rounded-xl p-4 space-y-2 text-sm mt-2">
+                  <p className="flex justify-between text-gray-700">
+                    <span>Live Rate</span>
+                    <span className="font-semibold">₹{rate || "-"} / USDT</span>
+                  </p>
+                  <p className="flex justify-between text-gray-700">
+                    <span>Platform Fee</span>
+                    <span>₹{platformFee}</span>
+                  </p>
+                  <p className="flex justify-between text-gray-700">
+                    <span>Network Fee</span>
+                    <span>₹{networkFee}</span>
+                  </p>
+                  <p className="flex justify-between text-gray-900 font-semibold">
+                    <span>USDT to be deducted</span>
+                    <span>{(() => {
+                      const amt = parseFloat(amountInr);
+                      if (!amt || !rate) return "0.00";
+                      const net = amt - platformFee - networkFee;
+                      return net > 0 ? (net / rate).toFixed(2) : "0.00";
+                    })()}</span>
+                  </p>
+                </div>
               </div>
               <button
+                className="w-full bg-blue-600 text-white py-2 rounded font-medium mt-4 disabled:opacity-50"
+                disabled={approvedBankDetails.length === 0 || !amountInr || parseFloat(amountInr) <= 0}
                 onClick={handleSell}
-                disabled={processing || approvedBankDetails.length === 0}
-                className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-50"
               >
-                {processing ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    {loadingMessage || "Processing..."}
-                  </div>
-                ) : (
-                  "Sell USDT"
-                )}
+                Sell USDT
               </button>
             </div>
           )}

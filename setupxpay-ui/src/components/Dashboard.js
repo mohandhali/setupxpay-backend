@@ -1258,8 +1258,11 @@ const Dashboard = () => {
       {showBankSection && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white overflow-auto">
           <div className="w-full max-w-2xl mx-auto p-6 relative min-h-screen flex flex-col">
-            <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-800" onClick={() => setShowBankSection(false)}><FaTimes /></button>
-            <h2 className="text-2xl font-bold mb-2 flex items-center gap-2"><FaWallet /> Bank & UPI Details</h2>
+            {/* Back button top-left */}
+            <button className="absolute top-4 left-4 text-gray-500 hover:text-gray-800 flex items-center gap-1" onClick={() => setShowBankSection(false)}>
+              <FaArrowLeft className="inline-block" /> Back
+            </button>
+            <h2 className="text-2xl font-bold mb-2 flex items-center gap-2 mt-10"><FaWallet /> Bank & UPI Details</h2>
             <div className="text-sm text-blue-800 bg-blue-50 rounded px-4 py-3 mb-6">
               <b>Important:</b> Please add <b>only your own</b> bank account or UPI ID. <b>Third-party details are strictly prohibited</b> and will be rejected by the admin. Withdrawals will only be processed to your own verified accounts. Ensure the account holder name matches your KYC documents.
             </div>
