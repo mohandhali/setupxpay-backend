@@ -21,8 +21,8 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
   const [successDetails, setSuccessDetails] = useState({});
   const scannerRef = useRef(null);
   const html5QrCodeRef = useRef(null);
-  const [approvedBankDetails, setApprovedBankDetails] = useState([]);
-  const [selectedBankIdx, setSelectedBankIdx] = useState(0);
+  const [userSellHistory, setUserSellHistory] = useState([]);
+  const SELL_LIMIT = 10000;
 
   // SetupXPay liquidity pool addresses (example)
   const setupxWalletAddressTRC = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
@@ -62,13 +62,13 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
       const data = await res.json();
       if (data.success) {
         const approved = (data.bankDetails || []).filter(bd => bd.status === "approved");
-        setApprovedBankDetails(approved);
-        setSelectedBankIdx(0);
+        // setApprovedBankDetails(approved); // This state is no longer needed
+        // setSelectedBankIdx(0); // This state is no longer needed
       } else {
-        setApprovedBankDetails([]);
+        // setApprovedBankDetails([]); // This state is no longer needed
       }
     } catch {
-      setApprovedBankDetails([]);
+      // setApprovedBankDetails([]); // This state is no longer needed
     }
   };
 
@@ -160,22 +160,19 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
       return;
     }
     // Use payout details from selected approved bank/UPI
-    const payout = approvedBankDetails[selectedBankIdx];
-    if (!payout) {
-      alert("Please select an approved payout method");
-      return;
-    }
+    // const payout = approvedBankDetails[selectedBankIdx]; // This logic is no longer needed
+    // if (!payout) {
+    //   alert("Please select an approved payout method");
+    //   return;
+    // }
     // For UPI payout, prefer UPI ID, else bank
-    let payoutUpi = payout.upiId;
-    if (!payoutUpi && payout.accountNumber && payout.ifsc) {
-      payoutUpi = null; // fallback to bank transfer (not implemented in this modal)
-    }
+    let payoutUpi = upiId;
     if (!payoutUpi) {
-      alert("Only UPI payout is supported in this flow. Please add an approved UPI ID.");
+      alert("Please enter a UPI ID or select a bank account.");
       return;
     }
     setUpiId(payoutUpi);
-    setMerchantName(payout.accountHolder);
+    setMerchantName(payoutUpi); // Assuming merchant name is the UPI ID for manual entry
     setShowBiometricAuth(true);
   };
 
@@ -309,6 +306,48 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
     }
   };
 
+  const handleAmountChange = (e) => {
+    const val = e.target.value;
+    if (parseFloat(val) > SELL_LIMIT) {
+      alert("You cannot sell more than ₹10,000 in a single transaction.");
+      return;
+    }
+    const total24h = get24hTotal();
+    if (total24h + parseFloat(val) > SELL_LIMIT) {
+      alert("You cannot sell more than ₹10,000 in 24 hours.");
+      return;
+    }
+    setAmountInr(val);
+  };
+
+  useEffect(() => {
+    // Fetch user's sell history for last 24 hours
+    const fetchSellHistory = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("https://setupxpay-backend.onrender.com/user/sell-history", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setUserSellHistory(data.history || []);
+        } else {
+          setUserSellHistory([]);
+        }
+      } catch {
+        setUserSellHistory([]);
+      }
+    };
+    fetchSellHistory();
+  }, [userId]);
+
+  const get24hTotal = () => {
+    const now = Date.now();
+    return userSellHistory
+      .filter(tx => now - new Date(tx.timestamp).getTime() < 24 * 60 * 60 * 1000)
+      .reduce((sum, tx) => sum + (parseFloat(tx.amountInr) || 0), 0);
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-white flex flex-col">
       <div className="relative w-full h-full flex flex-col">
@@ -359,7 +398,8 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Select Payout Method (Approved Only)</label>
-                {approvedBankDetails.length === 0 ? (
+                {/* The following block is no longer needed as UPI/Bank is entered manually */}
+                {/* {approvedBankDetails.length === 0 ? (
                   <div className="text-xs text-red-600">No approved bank/UPI details found. Please add and wait for admin approval.</div>
                 ) : (
                   <div className="flex flex-col gap-3">
@@ -383,10 +423,11 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
                       </button>
                     ))}
                   </div>
-                )}
+                )} */}
               </div>
               {/* Add a Payment Method summary box in the details step, always visible if a payout method is selected */}
-              {step === "details" && approvedBankDetails[selectedBankIdx] && (
+              {/* This block is no longer needed as UPI/Bank is entered manually */}
+              {/* {step === "details" && approvedBankDetails[selectedBankIdx] && (
                 <div className="bg-green-50 border border-green-300 rounded-lg p-4 mb-4 flex flex-col gap-1">
                   <div className="font-semibold text-green-800 text-base mb-1">Payment Method</div>
                   <div className="text-sm text-gray-800">
@@ -411,9 +452,10 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
                     <div className="text-xs text-gray-500 mt-1">Note: {approvedBankDetails[selectedBankIdx].adminNote}</div>
                   )}
                 </div>
-              )}
+              )} */}
               {/* Show selected payout details */}
-              {approvedBankDetails[selectedBankIdx] && (
+              {/* This block is no longer needed as UPI/Bank is entered manually */}
+              {/* {approvedBankDetails[selectedBankIdx] && (
                 <div className="bg-blue-50 rounded-lg p-3 mb-2 mt-2">
                   <div className="text-xs text-gray-500 mb-1">Account Holder</div>
                   <div className="font-semibold text-gray-800">{approvedBankDetails[selectedBankIdx].accountHolder}</div>
@@ -421,7 +463,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
                   {approvedBankDetails[selectedBankIdx].accountNumber && <><div className="text-xs text-gray-500 mt-2">Account No</div><div className="font-mono text-xs break-all">{approvedBankDetails[selectedBankIdx].accountNumber}</div></>}
                   {approvedBankDetails[selectedBankIdx].ifsc && <><div className="text-xs text-gray-500 mt-2">IFSC</div><div className="font-mono text-xs break-all">{approvedBankDetails[selectedBankIdx].ifsc}</div></>}
                 </div>
-              )}
+              )} */}
               {/* INR Amount input and live USDT calculation */}
               <div>
                 <label className="block text-sm font-medium text-gray-600 mb-1">Enter INR Amount</label>
@@ -430,7 +472,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
                   placeholder="e.g. 1000"
                   className="w-full border px-4 py-2 rounded-lg text-sm outline-blue-600"
                   value={amountInr}
-                  onChange={e => setAmountInr(e.target.value)}
+                  onChange={handleAmountChange}
                 />
                 <div className="bg-gray-100 rounded-xl p-4 space-y-2 text-sm mt-2">
                   <p className="flex justify-between text-gray-700">
@@ -453,7 +495,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
               </div>
               <button
                 className="w-full bg-blue-600 text-white py-2 rounded font-medium mt-4 disabled:opacity-50"
-                disabled={approvedBankDetails.length === 0 || !amountInr || parseFloat(amountInr) <= 0}
+                disabled={!amountInr || parseFloat(amountInr) <= 0}
                 onClick={handleSell}
               >
                 Sell USDT
