@@ -6,17 +6,13 @@ const TransactionHistory = ({ walletAddress, onClose }) => {
   const [expandedIdx, setExpandedIdx] = useState(null); // new for inline details
 
   useEffect(() => {
-    if (!walletAddress) return;
-
-    fetch(`https://setupxpay-backend.onrender.com/transactions?wallet=${walletAddress}`)
+    let address = user.bep20Address || user.walletAddress;
+    if (!address) return;
+    fetch(`${CURRENT_CONFIG.BACKEND_URL}/transactions?wallet=${address}`)
       .then((res) => res.json())
-      .then((data) => {
-  const sorted = data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  setTransactions(sorted);
-})
-
-      .catch((err) => console.error("Failed to fetch transactions:", err));
-  }, [walletAddress]);
+      .then((data) => setTransactions(data))
+      .catch((err) => console.error("❌ Error fetching transactions:", err));
+  }, [user]);
 
   const getFormattedDate = (tx) =>
     new Date(tx.timestamp || tx.createdAt).toLocaleString();

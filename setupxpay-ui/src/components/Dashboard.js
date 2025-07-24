@@ -189,7 +189,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (user?.walletAddress) {
+    if (user?.walletAddress || user?.bep20Address) {
       fetchBalance();
       fetchRates();
       fetchUSDTPrice();
@@ -204,9 +204,12 @@ const Dashboard = () => {
     }
   }, [user]);
 
+  // Updated fetchBalance to support BEP20 (BSC) and TRC20
   const fetchBalance = async () => {
     try {
-      const res = await fetch(`${CURRENT_CONFIG.BACKEND_URL}/get-balance/${user.walletAddress}`);
+      let address = user.bep20Address || user.walletAddress;
+      if (!address) return;
+      const res = await fetch(`${CURRENT_CONFIG.BACKEND_URL}/get-balance/${address}`);
       const data = await res.json();
       setBalance(data.usdt || "0");
     } catch (err) {
