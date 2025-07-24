@@ -195,6 +195,21 @@ app.get("/get-balance/:address", async (req, res) => {
         const token = trc20.find(item => item[usdtContractTRON]);
         if (token) usdtBalance = token[usdtContractTRON];
       }
+      // Format TRC20 USDT balance (6 decimals)
+      function formatTRC20Balance(raw) {
+        try {
+          const rawStr = typeof raw === 'string' ? raw : String(raw);
+          const big = BigInt(rawStr);
+          const divisor = BigInt(1e6);
+          const whole = big / divisor;
+          const fraction = big % divisor;
+          let fractionStr = (fraction.toString().padStart(6, '0')).replace(/0+$/, '');
+          return fractionStr.length > 0 ? `${whole.toString()}.${fractionStr}` : whole.toString();
+        } catch (e) {
+          return "0";
+        }
+      }
+      usdtBalance = formatTRC20Balance(usdtBalance);
       const trxBalance = response.data.balance || "0";
       return res.json({ address, usdt: usdtBalance, trx: trxBalance });
     } else if (address.startsWith("0x")) {
