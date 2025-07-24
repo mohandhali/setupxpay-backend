@@ -722,6 +722,7 @@ app.post("/webhook", async (req, res) => {
       throw new Error("Unsupported wallet address format");
     }
 
+    // Always save deposit transaction for both BEP20 and TRC20
     await Transaction.create({
       type: "deposit",
       amountInr,
@@ -732,6 +733,9 @@ app.post("/webhook", async (req, res) => {
       fee: platformFee,
       network: wallet.startsWith('0x') ? 'bep20' : wallet.startsWith('T') ? 'trc20' : undefined
     });
+    if (wallet.startsWith('T')) {
+      console.log(`✅ TRC20 deposit transaction saved for wallet: ${wallet}, amount: ${usdtAmount}`);
+    }
 
     console.log(`✅ Webhook processed: ₹${amountInr} → ${usdtAmount} USDT to ${wallet}`);
     res.status(200).send("Success");

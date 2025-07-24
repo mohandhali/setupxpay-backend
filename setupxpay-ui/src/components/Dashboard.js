@@ -191,14 +191,42 @@ const Dashboard = () => {
   // Add network state to track selected network (default to 'bep20' if user has it, else 'trc20')
   const [network, setNetwork] = useState(user?.bep20Address ? 'bep20' : 'trc20');
 
+  // Add state for both balances
+  const [trc20Balance, setTrc20Balance] = useState("0");
+  const [bep20Balance, setBep20Balance] = useState("0");
+
+  // Fetch both balances and set them
+  const fetchAllBalances = async () => {
+    try {
+      let trc = "0", bep = "0";
+      if (user.walletAddress) {
+        const res = await fetch(`${CURRENT_CONFIG.BACKEND_URL}/get-balance/${user.walletAddress}`);
+        const data = await res.json();
+        trc = data.usdt || "0";
+      }
+      if (user.bep20Address) {
+        const res = await fetch(`${CURRENT_CONFIG.BACKEND_URL}/get-balance/${user.bep20Address}`);
+        const data = await res.json();
+        bep = data.usdt || "0";
+      }
+      setTrc20Balance(trc);
+      setBep20Balance(bep);
+      // Set main balance to selected network
+      setBalance(network === 'bep20' ? bep : trc);
+    } catch (err) {
+      console.error("❌ Error fetching balances:", err);
+    }
+  };
+
   useEffect(() => {
     if (user?.walletAddress || user?.bep20Address) {
-      fetchBalance();
+      fetchAllBalances();
       fetchRates();
       fetchUSDTPrice();
       const interval = setInterval(() => {
         fetchRates();
         fetchUSDTPrice();
+        fetchAllBalances();
       }, 10000);
       return () => clearInterval(interval);
     }
@@ -613,18 +641,20 @@ const Dashboard = () => {
             <div className="flex gap-2 mb-2">
               <button
                 className={`px-3 py-1 rounded-full text-xs font-semibold border ${network === 'trc20' ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 border-blue-600'}`}
-                onClick={() => { setNetwork('trc20'); fetchBalance(); }}
+                onClick={() => { setNetwork('trc20'); setBalance(trc20Balance); }}
                 disabled={!user.walletAddress}
               >TRC20</button>
               <button
                 className={`px-3 py-1 rounded-full text-xs font-semibold border ${network === 'bep20' ? 'bg-blue-600 text-white' : 'bg-white text-blue-700 border-blue-600'}`}
-                onClick={() => { setNetwork('bep20'); fetchBalance(); }}
+                onClick={() => { setNetwork('bep20'); setBalance(bep20Balance); }}
                 disabled={!user.bep20Address}
               >BEP20</button>
             </div>
+            {/* Show total balance */}
             <div className="flex flex-col items-center mb-1">
-              <span className="text-3xl font-bold text-gray-900 tracking-wide">${(parseFloat(balance) * usdtPrice).toFixed(2)}</span>
-              <div className="text-xs text-gray-500 mt-1">{parseFloat(balance).toFixed(2)} USDT</div>
+              <span className="text-3xl font-bold text-gray-900 tracking-wide">${((parseFloat(trc20Balance) + parseFloat(bep20Balance)) * usdtPrice).toFixed(2)}</span>
+              <div className="text-xs text-gray-500 mt-1">{(parseFloat(trc20Balance) + parseFloat(bep20Balance)).toFixed(2)} USDT (Total)</div>
+              <div className="text-xs text-blue-700 mt-1">{network === 'bep20' ? bep20Balance : trc20Balance} USDT ({network.toUpperCase()})</div>
             </div>
             <div className="flex gap-4 mt-2 mb-4">
               <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-semibold">USDT</span>
