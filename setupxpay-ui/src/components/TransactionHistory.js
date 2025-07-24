@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { FaClock } from "react-icons/fa";
+import { CURRENT_CONFIG } from "../config/mainnet";
 
-const TransactionHistory = ({ walletAddress, onClose }) => {
+const TransactionHistory = ({ user, onClose }) => {
   const [transactions, setTransactions] = useState([]);
   const [expandedIdx, setExpandedIdx] = useState(null); // new for inline details
 
   useEffect(() => {
-    let address = user.bep20Address || user.walletAddress;
+    let address = user?.bep20Address || user?.walletAddress;
     if (!address) return;
     fetch(`${CURRENT_CONFIG.BACKEND_URL}/transactions?wallet=${address}`)
       .then((res) => res.json())

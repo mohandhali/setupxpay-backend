@@ -179,28 +179,35 @@ const PendingPayment = mongoose.model("PendingPayment", new mongoose.Schema({
 // ===== Get Wallet Balance =====
 app.get("/get-balance/:address", async (req, res) => {
   const address = req.params.address;
-  const usdtContract = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
+  // USDT contract addresses
+  const usdtContractTRON = "TMxbFWUuebqshwm8e5E5WVzJXnDmdBZtXb";
+  const usdtContractBSC = "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd";
 
   try {
-    const response = await axios.get(`https://api.tatum.io/v3/tron/account/${address}`, {
-      headers: { "x-api-key": TATUM_API_KEY }
-    });
-
-    const trc20 = response.data.trc20;
-    let usdtBalance = "0";
-    if (Array.isArray(trc20)) {
-      const token = trc20.find(item => item[usdtContract]);
-      if (token) usdtBalance = token[usdtContract];
+    if (address.startsWith("T")) {
+      // TRON (TRC20)
+      const response = await axios.get(`https://api.tatum.io/v3/tron/account/${address}`, {
+        headers: { "x-api-key": TATUM_API_KEY }
+      });
+      const trc20 = response.data.trc20;
+      let usdtBalance = "0";
+      if (Array.isArray(trc20)) {
+        const token = trc20.find(item => item[usdtContractTRON]);
+        if (token) usdtBalance = token[usdtContractTRON];
+      }
+      const trxBalance = response.data.balance || "0";
+      return res.json({ address, usdt: usdtBalance, trx: trxBalance });
+    } else if (address.startsWith("0x")) {
+      // BSC (BEP20)
+      const response = await axios.get(
+        `https://api.tatum.io/v3/blockchain/token/balance/BSC/${usdtContractBSC}/${address}`,
+        { headers: { "x-api-key": TATUM_API_KEY } }
+      );
+      const usdtBalance = response.data.balance || "0";
+      return res.json({ address, usdt: usdtBalance });
+    } else {
+      return res.status(400).json({ error: "Invalid address format" });
     }
-
-    // Get TRX balance
-    const trxBalance = response.data.balance || "0";
-
-    res.json({ 
-      address, 
-      usdt: usdtBalance,
-      trx: trxBalance 
-    });
   } catch (error) {
     console.error("❌ Balance error:", error.message);
     res.status(500).json({ error: "Failed to fetch balance" });

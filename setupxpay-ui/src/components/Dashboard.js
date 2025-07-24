@@ -836,10 +836,7 @@ const Dashboard = () => {
         />
       )}
       {showTransactionHistory && (
-        <TransactionHistory
-          walletAddress={user.walletAddress}
-          onClose={() => setShowTransactionHistory(false)}
-        />
+        <TransactionHistory user={user} onClose={() => setShowTransactionHistory(false)} />
       )}
       {showProfile && (
         <Profile 
