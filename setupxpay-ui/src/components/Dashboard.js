@@ -653,7 +653,7 @@ const Dashboard = () => {
             {/* Show total balance */}
             <div className="flex flex-col items-center mb-1">
               <span className="text-3xl font-bold text-gray-900 tracking-wide">${((parseFloat(trc20Balance) + parseFloat(bep20Balance)) * usdtPrice).toFixed(2)}</span>
-              <div className="text-xs text-gray-500 mt-1">{(parseFloat(trc20Balance) + parseFloat(bep20Balance)).toFixed(2)} USDT (Total)</div>
+              <div className="text-xs text-gray-500 mt-1">{(parseFloat(trc20Balance) + parseFloat(bep20Balance)).toFixed(2)} USDT</div>
               <div className="text-xs text-blue-700 mt-1">{network === 'bep20' ? bep20Balance : trc20Balance} USDT ({network.toUpperCase()})</div>
             </div>
             <div className="flex gap-4 mt-2 mb-4">

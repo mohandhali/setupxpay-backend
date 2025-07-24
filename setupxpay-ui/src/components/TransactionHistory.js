@@ -7,13 +7,33 @@ const TransactionHistory = ({ user, network, onClose }) => {
   const [expandedIdx, setExpandedIdx] = useState(null); // new for inline details
 
   useEffect(() => {
-    let address = network === 'bep20' ? user?.bep20Address?.toLowerCase() : user?.walletAddress?.toLowerCase();
-    if (!address) return;
-    fetch(`${CURRENT_CONFIG.BACKEND_URL}/transactions?wallet=${address}`)
-      .then((res) => res.json())
-      .then((data) => setTransactions(data))
-      .catch((err) => console.error("❌ Error fetching transactions:", err));
-  }, [user, network]);
+    const fetchAll = async () => {
+      const addresses = [];
+      if (user?.walletAddress) addresses.push(user.walletAddress.toLowerCase());
+      if (user?.bep20Address) addresses.push(user.bep20Address.toLowerCase());
+      let allTxs = [];
+      for (const address of addresses) {
+        try {
+          const res = await fetch(`${CURRENT_CONFIG.BACKEND_URL}/transactions?wallet=${address}`);
+          const data = await res.json();
+          if (Array.isArray(data)) allTxs = allTxs.concat(data);
+        } catch (err) {
+          // ignore
+        }
+      }
+      // Remove duplicates by txId
+      const seen = new Set();
+      const uniqueTxs = allTxs.filter(tx => {
+        if (seen.has(tx.txId)) return false;
+        seen.add(tx.txId);
+        return true;
+      });
+      // Sort by createdAt desc
+      uniqueTxs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setTransactions(uniqueTxs);
+    };
+    fetchAll();
+  }, [user]);
 
   const getFormattedDate = (tx) =>
     new Date(tx.timestamp || tx.createdAt).toLocaleString();
@@ -130,7 +150,19 @@ const TransactionHistory = ({ user, network, onClose }) => {
                   )}
 
                   <p><strong>Network:</strong> {tx.network ? tx.network.toUpperCase() : '-'}</p>
-                  {tx.wallet && <p><strong>Wallet:</strong> {tx.wallet}</p>}
+                  {tx.wallet && <p><strong>Wallet:</strong> <span style={{
+                    display: 'inline-block',
+                    maxWidth: '220px',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-all',
+                    whiteSpace: 'pre-line',
+                    verticalAlign: 'middle',
+                    fontFamily: 'monospace',
+                    fontSize: '0.95em',
+                    background: '#f3f4f6',
+                    padding: '2px 4px',
+                    borderRadius: '4px',
+                  }}>{tx.wallet}</span></p>}
                   {tx.to && <p><strong>To:</strong> {tx.to}</p>}
                   {tx.from && <p><strong>From:</strong> {tx.from}</p>}
                   {tx.txId && (
