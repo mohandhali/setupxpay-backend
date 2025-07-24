@@ -57,7 +57,10 @@ if (!user || !user.walletAddress) {
     const rate = 95;
     const platformFee = 1;
     const trcFee = 5;
-    const netInr = parseFloat(amount) - platformFee - trcFee;
+    // Use network from request body
+    const network = req.body.network || 'trc20';
+    const networkFee = network === 'bep20' ? 1 : 5;
+    const netInr = parseFloat(amount) + platformFee + networkFee;
     const usdtAmount = (netInr / rate).toFixed(2);
 
     console.log("✅ Calculated USDT amount:", usdtAmount);
@@ -95,8 +98,8 @@ if (!user || !user.walletAddress) {
         txId: mockTxId,
         rate,
         from: userId,
-        fee: "1 + 5",
-        network: isUpiValid ? "upi" : "bank",
+        fee: `${platformFee} + ${networkFee}`,
+        network: network, // use the selected network
         bankDetails,
       });
       console.log("✅ Transaction saved to DB");
