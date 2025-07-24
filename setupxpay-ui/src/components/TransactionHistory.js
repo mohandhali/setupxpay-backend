@@ -140,7 +140,20 @@ const TransactionHistory = ({ user, network, onClose }) => {
                     <>
                       <p><strong>USDT Sold:</strong> {tx.usdtAmount || "-"}</p>
                       <p><strong>Rate:</strong> ₹{tx.rate || "-"}/USDT</p>
-                      <p><strong>INR Received:</strong> ₹{tx.amountInr || "-"}</p>
+                      {/* Remove INR Received row */}
+                      {/* Add Merchant Name and UPI ID for Sell USDT QR */}
+                      {getTxLabel(tx) === "Sell USDT QR" && (
+                        <>
+                          <p><strong>Merchant Name:</strong> {tx.bankDetails?.merchantName || tx.bankDetails?.accountHolder || "-"}</p>
+                          {tx.bankDetails?.upiId && (
+                            <p><strong>UPI ID:</strong> {tx.bankDetails.upiId}</p>
+                          )}
+                        </>
+                      )}
+                      {/* For WithdrawINRModal, show SetupXPay as merchant */}
+                      {getTxLabel(tx) === "Sell USDT" && (
+                        <p><strong>Merchant Name:</strong> SetupXPay</p>
+                      )}
                     </>
                   )}
 

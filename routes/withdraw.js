@@ -61,7 +61,9 @@ if (!user || !user.walletAddress) {
     const network = req.body.network || 'trc20';
     const networkFee = network === 'bep20' ? 1 : 5;
     const netInr = parseFloat(amount) + platformFee + networkFee;
-    const usdtAmount = (netInr / rate).toFixed(2);
+    let usdtAmount = netInr / rate;
+    usdtAmount = Math.ceil(usdtAmount * 100) / 100; // round up to 2 decimals
+    usdtAmount = usdtAmount.toFixed(2);
 
     console.log("✅ Calculated USDT amount:", usdtAmount);
 
