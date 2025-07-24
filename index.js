@@ -589,8 +589,9 @@ app.get("/transactions", async (req, res) => {
     const conditions = [];
 
     if (wallet) {
-      conditions.push({ wallet });
-      conditions.push({ from: wallet });
+      const lwallet = wallet.toLowerCase();
+      conditions.push({ wallet: lwallet });
+      conditions.push({ from: lwallet });
     }
 
     if (userId) {
@@ -742,7 +743,7 @@ app.post("/webhook", async (req, res) => {
       type: "deposit",
       amountInr,
       usdtAmount,
-      wallet,
+      wallet: wallet.toLowerCase(),
       txId,
       rate: liveRateData.userRate,
       fee: platformFee,
