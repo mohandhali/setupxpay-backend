@@ -152,7 +152,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
     const totalInr = amt + platformFee + networkFee;
     let usdt = totalInr / rate;
     usdt = Math.ceil(usdt * 100) / 100; // round up to 2 decimals
-    return usdt < 1 ? "1.00" : usdt.toFixed(2);
+    return usdt.toFixed(2);
   };
 
   const handleSell = async () => {
