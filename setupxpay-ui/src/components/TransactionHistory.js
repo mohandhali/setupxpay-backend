@@ -7,7 +7,7 @@ const TransactionHistory = ({ user, network, onClose }) => {
   const [expandedIdx, setExpandedIdx] = useState(null); // new for inline details
 
   useEffect(() => {
-    let address = network === 'bep20' ? user?.bep20Address?.toLowerCase() : user?.walletAddress?.toUpperCase();
+    let address = network === 'bep20' ? user?.bep20Address?.toLowerCase() : user?.walletAddress?.toLowerCase();
     if (!address) return;
     fetch(`${CURRENT_CONFIG.BACKEND_URL}/transactions?wallet=${address}`)
       .then((res) => res.json())
