@@ -203,7 +203,24 @@ app.get("/get-balance/:address", async (req, res) => {
         `https://api.tatum.io/v3/blockchain/token/balance/BSC/${usdtContractBSC}/${address}`,
         { headers: { "x-api-key": TATUM_API_KEY } }
       );
-      const usdtBalance = response.data.balance || "0";
+      let usdtBalance = response.data.balance || "0";
+      // Format BEP20 USDT balance (18 decimals) using BigInt for accuracy
+      function formatBEP20Balance(raw) {
+        try {
+          const rawStr = typeof raw === 'string' ? raw : String(raw);
+          const big = BigInt(rawStr);
+          const divisor = BigInt(1e18);
+          const whole = big / divisor;
+          const fraction = big % divisor;
+          let fractionStr = (fraction.toString().padStart(18, '0')).slice(0, 6); // up to 6 decimals
+          // Remove trailing zeros
+          fractionStr = fractionStr.replace(/0+$/, '');
+          return fractionStr.length > 0 ? `${whole.toString()}.${fractionStr}` : whole.toString();
+        } catch (e) {
+          return "0";
+        }
+      }
+      usdtBalance = formatBEP20Balance(usdtBalance);
       return res.json({ address, usdt: usdtBalance });
     } else {
       return res.status(400).json({ error: "Invalid address format" });
