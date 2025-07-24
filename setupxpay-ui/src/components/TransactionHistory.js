@@ -129,11 +129,28 @@ const TransactionHistory = ({ user, onClose }) => {
                       <p><strong>Amount:</strong> {getAmount(tx)}</p>
                   )}
 
-                  <p><strong>Network:</strong> {tx.network?.toUpperCase() || "-"}</p>
+                  <p><strong>Network:</strong> {tx.network ? tx.network.toUpperCase() : '-'}</p>
                   {tx.wallet && <p><strong>Wallet:</strong> {tx.wallet}</p>}
                   {tx.to && <p><strong>To:</strong> {tx.to}</p>}
                   {tx.from && <p><strong>From:</strong> {tx.from}</p>}
-                  {tx.txId && <p><strong>Transaction ID:</strong> {tx.txId}</p>}
+                  {tx.txId && (
+                    <p>
+                      <strong>Transaction ID:</strong>{' '}
+                      <span style={{
+                        display: 'inline-block',
+                        maxWidth: '220px',
+                        overflowWrap: 'break-word',
+                        wordBreak: 'break-all',
+                        whiteSpace: 'pre-line',
+                        verticalAlign: 'middle',
+                        fontFamily: 'monospace',
+                        fontSize: '0.95em',
+                        background: '#f3f4f6',
+                        padding: '2px 4px',
+                        borderRadius: '4px',
+                      }}>{tx.txId}</span>
+                    </p>
+                  )}
                   <p><strong>Time:</strong> {getFormattedDate(tx)}</p>
                 </div>
               )}

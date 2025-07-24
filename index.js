@@ -688,7 +688,9 @@ app.post("/webhook", async (req, res) => {
   }
 
   try {
-    const usdtAmount = (amountInr / liveRateData.userRate).toFixed(2);
+    const platformFee = Math.ceil(amountInr * 0.01);
+    const netInr = amountInr - platformFee;
+    const usdtAmount = (netInr / liveRateData.userRate).toFixed(2);
 
     let txRes, txId;
     if (wallet.startsWith('0x')) {
@@ -727,6 +729,8 @@ app.post("/webhook", async (req, res) => {
       wallet,
       txId,
       rate: liveRateData.userRate,
+      fee: platformFee,
+      network: wallet.startsWith('0x') ? 'bep20' : wallet.startsWith('T') ? 'trc20' : undefined
     });
 
     console.log(`✅ Webhook processed: ₹${amountInr} → ${usdtAmount} USDT to ${wallet}`);
