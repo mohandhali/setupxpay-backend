@@ -278,7 +278,7 @@ const SellUSDTQRModal = ({ userId, trc20Address, bep20Address, onClose }) => {
       const inrPayload = {
         userId,
         amount: amountInr,
-        bankDetails: { upiId: cleanUpi },
+        bankDetails: { merchantName, upiId: cleanUpi },
       };
       const inrRes = await fetch("https://setupxpay-backend.onrender.com/withdraw/inr-mock", {
         method: "POST",

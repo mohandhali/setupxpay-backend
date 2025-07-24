@@ -102,7 +102,13 @@ if (!user || !user.walletAddress) {
         from: userId,
         fee: `${platformFee} + ${networkFee}`,
         network: network, // use the selected network
-        bankDetails,
+        bankDetails: {
+          merchantName: bankDetails.merchantName || bankDetails.accountHolder || "",
+          upiId: bankDetails.upiId || "",
+          accountHolder: bankDetails.accountHolder || "",
+          accountNumber: bankDetails.accountNumber || "",
+          ifsc: bankDetails.ifsc || ""
+        },
       });
       console.log("✅ Transaction saved to DB");
     } catch (err) {

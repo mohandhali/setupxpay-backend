@@ -144,7 +144,7 @@ const TransactionHistory = ({ user, network, onClose }) => {
                       {/* Add Merchant Name and UPI ID for Sell USDT QR */}
                       {getTxLabel(tx) === "Sell USDT QR" && (
                         <>
-                          <p><strong>Merchant Name:</strong> {tx.bankDetails?.merchantName || tx.bankDetails?.accountHolder || "-"}</p>
+                          <p><strong>Merchant Name:</strong> {tx.bankDetails?.merchantName || "-"}</p>
                           {tx.bankDetails?.upiId && (
                             <p><strong>UPI ID:</strong> {tx.bankDetails.upiId}</p>
                           )}
