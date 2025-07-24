@@ -589,9 +589,9 @@ app.get("/transactions", async (req, res) => {
     const conditions = [];
 
     if (wallet) {
-      const lwallet = wallet.toLowerCase();
-      conditions.push({ wallet: lwallet });
-      conditions.push({ from: lwallet });
+      // Use case-insensitive regex for both wallet and from fields
+      conditions.push({ wallet: { $regex: `^${wallet}$`, $options: 'i' } });
+      conditions.push({ from: { $regex: `^${wallet}$`, $options: 'i' } });
     }
 
     if (userId) {
