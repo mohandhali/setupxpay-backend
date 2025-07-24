@@ -2,18 +2,18 @@ import React, { useEffect, useState } from "react";
 import { FaClock } from "react-icons/fa";
 import { CURRENT_CONFIG } from "../config/mainnet";
 
-const TransactionHistory = ({ user, onClose }) => {
+const TransactionHistory = ({ user, network, onClose }) => {
   const [transactions, setTransactions] = useState([]);
   const [expandedIdx, setExpandedIdx] = useState(null); // new for inline details
 
   useEffect(() => {
-    let address = user?.bep20Address || user?.walletAddress;
+    let address = network === 'bep20' ? user?.bep20Address : user?.walletAddress;
     if (!address) return;
     fetch(`${CURRENT_CONFIG.BACKEND_URL}/transactions?wallet=${address}`)
       .then((res) => res.json())
       .then((data) => setTransactions(data))
       .catch((err) => console.error("❌ Error fetching transactions:", err));
-  }, [user]);
+  }, [user, network]);
 
   const getFormattedDate = (tx) =>
     new Date(tx.timestamp || tx.createdAt).toLocaleString();
