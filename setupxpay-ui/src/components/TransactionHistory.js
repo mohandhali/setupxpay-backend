@@ -150,9 +150,19 @@ const TransactionHistory = ({ user, network, onClose }) => {
                           )}
                         </>
                       )}
-                      {/* For WithdrawINRModal, show SetupXPay as merchant */}
-                      {getTxLabel(tx) === "Sell USDT" && (
-                        <p><strong>Merchant Name:</strong> SetupXPay</p>
+                      {getTxLabel(tx) === "Withdraw INR" && (
+                        <>
+                          <p><strong>Merchant Name:</strong> {tx.bankDetails?.merchantName || "-"}</p>
+                          {tx.bankDetails?.upiId && (
+                            <p><strong>UPI ID:</strong> {tx.bankDetails.upiId}</p>
+                          )}
+                          {tx.bankDetails?.accountNumber && (
+                            <p><strong>Account No.:</strong> {tx.bankDetails.accountNumber}</p>
+                          )}
+                          {tx.bankDetails?.ifsc && (
+                            <p><strong>IFSC:</strong> {tx.bankDetails.ifsc}</p>
+                          )}
+                        </>
                       )}
                     </>
                   )}
